@@ -16,36 +16,43 @@ export default {
                             session.message.attachments &&
                             session.message.attachments.length > 0;
 
-        if (hasAttachment) {
-            let attachment = session.message.attachments[0];
-            let isValidAudioAttachment = attachment.contentType.startsWith('audio');
-
-            if (isValidAudioAttachment) {
-                let voiceRecognitionResult: VoiceRecognitionResponse;
-                let contentUrl = attachment.contentUrl;
-
-                getRemoteResource(contentUrl)
-                    .then(buffer => bingSpeechClient.voiceRecognition(buffer))
-                    .then(voiceResult => {
-                        voiceRecognitionResult = voiceResult;
-                        return evaluateVoiceResponse(voiceResult);
-                    })
-                    .then(valid => {
-                        if (valid) {
-                            session.message.text = voiceRecognitionResult.header.lexical;
-                            next();
-                        } else {
-                            session.send('Sorry, I do not understand your audio message');
-                            next(new Therror('Bad audio message quality'));
-                        }
-                    })
-                    .catch(err => {
-                        logger.warn(err, 'Bing Speech transcoding failed');
-                        session.send('Sorry, I do not understand your audio message');
-                        next(new Therror(err, 'Bing Speech transcoding failed'));
-                    });
-            }
+        if (!hasAttachment) {
+            return next();
         }
+
+        let attachment = session.message.attachments[0]; // XXX support multiple attachments
+        let isValidAudioAttachment = attachment.contentType.startsWith('audio');
+
+        if (!isValidAudioAttachment) {
+            logger.warn(`Audio format not supported ${attachment.contentType}`);
+            session.send('Sorry, I do not understand your audio message');
+            return next(new Therror(`Audio format not supported ${attachment.contentType}`));
+        }
+
+        let contentUrl = attachment.contentUrl;
+        let voiceRecognitionResult: VoiceRecognitionResponse;
+
+        getRemoteResource(contentUrl)
+            .then(buffer => bingSpeechClient.voiceRecognition(buffer))
+            .then(voiceResult => {
+                logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
+                voiceRecognitionResult = voiceResult;
+                return evaluateVoiceResponse(voiceResult);
+            })
+            .then(valid => {
+                if (valid) {
+                    session.message.text = voiceRecognitionResult.header.lexical;
+                    next();
+                } else {
+                    session.send('Sorry, I do not understand your audio message');
+                    next(new Therror('Bad audio message quality'));
+                }
+            })
+            .catch(err => {
+                logger.warn(err, 'Bing Speech transcoding failed');
+                session.send('Sorry, I do not understand your audio message');
+                next(new Therror(err, 'Bing Speech transcoding failed'));
+            });
     }
 } as BotBuilder.IMiddlewareMap;
 
@@ -95,8 +102,6 @@ function getRemoteResource(url: string): Promise<Buffer> {
  * @return {Promise<boolean>} Flag indicating whether the voice recognition is good enough.
  */
 function evaluateVoiceResponse(voiceResult: VoiceRecognitionResponse): Promise<boolean> {
-    logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
-
     let goodAnswer = voiceResult.header.status === 'success' &&
                      (voiceResult.header.properties.HIGHCONF === '1' || voiceResult.header.properties.MIDCONF === '1');
 
