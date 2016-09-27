@@ -1,7 +1,7 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 
-import { LanguageDetector, Logger, ServerLogger, Normalizer } from './middlewares';
+import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio } from './middlewares';
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
@@ -26,10 +26,12 @@ export class Bot extends BotBuilder.UniversalBot {
             message: 'Conversation restarted by a main update',
             resetCommand: /^reset/i
         }));
+
+        this.use(Audio);
         this.use(ServerLogger);
-        this.use(Logger);
-        this.use(LanguageDetector);
         this.use(Normalizer);
+        this.use(LanguageDetector);
+        this.use(Logger);
 
         this.endConversationAction(
             'cancel',
