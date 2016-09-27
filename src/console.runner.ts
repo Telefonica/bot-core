@@ -16,7 +16,7 @@ export interface ConsoleRunnerSettings {
  * a {@link BotBuilder.ConsoleConnector}, mostly to interact with the bot 
  * during the development phase. 
  */
-export class ConsoleRunner implements BotRunner {
+export class ConsoleRunner implements BotRunner<BotBuilder.ConsoleConnector> {
     /** The Bot instance this runner will manage */
     bot: BotBuilder.UniversalBot;
 
@@ -35,14 +35,15 @@ export class ConsoleRunner implements BotRunner {
         this.bot.connector('*', this.connector);
     }
 
-    start(): Promise<void> {
+    start(): Promise<BotBuilder.ConsoleConnector> {
         // We start the connector here, cause it creates the link to the TTY in this methods
         this.connector.listen();
-        return Promise.resolve();
+        console.info('Console listening');
+        return Promise.resolve(this.connector);
     }
 
-    stop(): Promise<void> {
+    stop(): Promise<BotBuilder.ConsoleConnector> {
         // No need to tear down anything, BotBuilder.ConsoleConnector does not exposes anything also
-        return Promise.resolve();
+        return Promise.resolve(this.connector);
     }
 }

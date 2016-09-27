@@ -5,6 +5,7 @@ import * as http from 'http';
 import enableTerminate = require('server-terminate');
 
 import { BotRunner } from './runner';
+import { ServerRunner as AlfalfaServerRunner } from 'alfalfa';
 
 /**
  * Settings to create a {@link ServerRunner} instance
@@ -26,15 +27,23 @@ export interface ServerRunnerSettings {
  * This {@link BotRunner} is used mainly for non-development environments.
  * It will connect your {@link BotBuilder.UniversalBot} implementation with the MSBotFramework
  */
-export class ServerRunner implements BotRunner {
+export class ServerRunner extends AlfalfaServerRunner {
     settings: ServerRunnerSettings;
     bot: BotBuilder.UniversalBot;
 
     private app: express.Application;
-    private server: any;
     private connector: BotBuilder.ChatConnector;
 
     constructor(settings: ServerRunnerSettings) {
+        let app = express();
+        let server = http.createServer(app);
+
+        super({
+          server: server,
+          port: settings.port
+        });
+
+        this.app = app;
         this.bot = settings.bot;
         this.settings = settings;
 
@@ -53,50 +62,6 @@ export class ServerRunner implements BotRunner {
         this.app.post('/api/messages', this.connector.listen());
         this.app.get('/status', statusMW);
         this.app.use('*', defaultMW);
-    }
-
-    start(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            // TODO the server must be created in the constructor
-            let server = this.server = this.app.listen(this.settings.port);
-            enableTerminate(this.server);
-
-            this.server.on('error', onServerError);
-            this.server.once('listening', onServerListening);
-            this.server.on('close', onServerClose);
-
-            function onServerError(err: Error) {
-                unsubscribe();
-                reject(err);
-            }
-
-            function onServerListening() {
-                logger.info(server.address(), 'Server listening');
-                resolve();
-            }
-
-            function onServerClose() {
-                unsubscribe();
-                logger.info('Server closed');
-            }
-
-            function unsubscribe() {
-                server.removeListener('error', onServerError);
-                server.removeListener('listening', onServerListening);
-                server.removeListener('close', onServerClose);
-            }
-        });
-    }
-
-    stop(): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            this.server.terminate((err: Error) => {
-                if (err) {
-                    return reject(err);
-                }
-                resolve();
-            });
-        });
     }
 }
 
