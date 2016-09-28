@@ -94,8 +94,14 @@ export class Bot extends BotBuilder.UniversalBot {
         }
 
         return Object.keys(modelMap).map(key => {
+            let model = modelMap[key];
+            if (!model) {
+                logger.error('LUIS model %s is undefined. Skip.', key);
+                return;
+            }
+
             logger.info('Load LUIS model %s', key);
             return new BotBuilder.LuisRecognizer(modelMap[key]);
-        });
+        }).filter(recognizer => !!recognizer);
     }
 }
