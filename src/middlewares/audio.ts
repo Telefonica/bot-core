@@ -44,14 +44,12 @@ export default {
                     session.message.text = voiceRecognitionResult.header.lexical;
                     next();
                 } else {
-                    session.send('Sorry, I do not understand your audio message');
-                    next(new Therror('Bad audio message quality'));
+                    next();
                 }
             })
             .catch(err => {
                 logger.warn(err, 'Bing Speech transcoding failed');
-                session.send('Sorry, I do not understand your audio message');
-                next(new Therror(err, 'Bing Speech transcoding failed'));
+                next();
             });
     }
 } as BotBuilder.IMiddlewareMap;

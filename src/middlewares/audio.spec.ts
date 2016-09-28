@@ -7,7 +7,7 @@ import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-clien
 
 import * as audio from './audio';
 
-// XXX disable logs to avoid
+// XXX disable logs to avoid stdout pollution
 
 describe('Audio Middleware', () => {
     let bingSpeechClientStub: sinon.SinonStub;

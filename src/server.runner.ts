@@ -39,15 +39,14 @@ export class ServerRunner extends AlfalfaServerRunner {
         let server = http.createServer(app);
 
         super({
-          server: server,
-          port: settings.port
+            server: server,
+            port: settings.port
         });
 
-        this.app = app;
         this.bot = settings.bot;
         this.settings = settings;
 
-        this.bot.use(BotBuilder.Middleware.sendTyping());
+        // XXX this.bot.use(BotBuilder.Middleware.sendTyping());
 
         logger.info('Initialize chat connector for application id %s', this.settings.appId);
         this.connector = new BotBuilder.ChatConnector({
@@ -57,7 +56,7 @@ export class ServerRunner extends AlfalfaServerRunner {
 
         this.bot.connector('*', this.connector);
 
-        this.app = express();
+        this.app = app;
         this.app.disable('x-powered-by');
         this.app.post('/api/messages', this.connector.listen());
         this.app.get('/status', statusMW);
