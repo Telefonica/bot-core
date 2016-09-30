@@ -41,7 +41,7 @@
   "dependencies": {
     "alfalfa": "^1.0.1",
     "bingspeech-api-client": "^1.0.0",
-    "botbuilder": "TDAF/botbuilder",
+    "botbuilder": "git+https://git@github.com/TDAF/botbuilder",
     "express": "^4.14.0",
     "logops": "^1.0.6",
     "request": "^2.75.0",
