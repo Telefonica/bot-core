@@ -65,7 +65,7 @@ export class ServerRunner extends AlfalfaServerRunner {
 }
 
 function statusMW(req: express.Request, res: express.Response) {
-    res.status(200).send('Alive');
+    res.status(200).send('Alive ' + process.uptime()); // XXX use express-ping
 }
 
 function defaultMW(req: express.Request, res: express.Response) {
