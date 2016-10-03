@@ -20,7 +20,7 @@ export class PluginLoader {
             return null;
         }
 
-        logger.info(`Loaded [${lib.name}] libray from plugin at "${path.basename(libpath)}"`);
+        logger.info(`Loaded [${lib.name}] library from plugin at "${path.basename(libpath)}"`);
 
         return lib;
     }
