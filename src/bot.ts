@@ -34,6 +34,9 @@ export class Bot extends BotBuilder.UniversalBot {
         this.use(Logger);
         this.use(Slack);
 
+        // Capture bot errors to log them
+        this.on('error', err => logger.error(err));
+
         this.endConversationAction(
             'cancel',
             'Good. I\'m here if you need something else',
