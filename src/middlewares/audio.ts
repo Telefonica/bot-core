@@ -7,6 +7,10 @@ import Therror from 'therror';
 
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
+if (!process.env.MICROSOFT_BING_SPEECH_KEY) {
+    logger.warn('No MICROSOFT_BING_SPEECH_KEY');
+}
+
 const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
 
 export default {
