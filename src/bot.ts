@@ -1,7 +1,7 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 
-import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio } from './middlewares';
+import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio, Slack } from './middlewares';
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
@@ -32,6 +32,7 @@ export class Bot extends BotBuilder.UniversalBot {
         this.use(Normalizer);
         this.use(LanguageDetector);
         this.use(Logger);
+        this.use(Slack);
 
         this.endConversationAction(
             'cancel',
@@ -63,9 +64,8 @@ export class Bot extends BotBuilder.UniversalBot {
                 session.beginDialog(dialogName, args);
             } else {
                 logger.warn({ intent: args.intent }, 'Unhandled intent');
-                session.endDialog(
-                    'I\'m sorry I didn\'t understand. Type "help" when you need help.'
-                );
+                let msg = createkUnhandledMessageResponse(session, args);
+                session.endDialog(msg);
             }
         });
 
@@ -104,4 +104,19 @@ export class Bot extends BotBuilder.UniversalBot {
             return new BotBuilder.LuisRecognizer(modelMap[key]);
         }).filter(recognizer => !!recognizer);
     }
+}
+
+function createkUnhandledMessageResponse(session: BotBuilder.Session, args: any): BotBuilder.Message {
+    let msg = new BotBuilder.Message(session).text('Sorry, I didn\'t understand. Type "help" when you need help.');
+
+    // This metadata is sent in the channel data to mark this message as unhandled
+    let source = session.message.source;
+    msg.sourceEvent({
+        [source]: {
+            intent: args.intent,
+            text: session.message.text
+        }
+    });
+
+    return msg;
 }

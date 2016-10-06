@@ -39,6 +39,7 @@
   "author": "TDAF <tdaf@tid.es>",
   "license": "UNLICENSED",
   "dependencies": {
+    "@slack/client": "^3.6.0",
     "alfalfa": "^1.0.1",
     "bingspeech-api-client": "^1.0.0",
     "botbuilder": "^3.2.3",
