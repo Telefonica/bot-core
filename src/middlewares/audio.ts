@@ -29,7 +29,7 @@ export default {
 
         if (!isValidAudioAttachment) {
             logger.warn(`Audio format not supported ${attachment.contentType}`);
-            session.send('Sorry, I do not understand your audio message');
+            session.send('Sorry, I do not understand your audio message'); // TODO remove or change
             return next(new Therror(`Audio format not supported ${attachment.contentType}`));
         }
 
