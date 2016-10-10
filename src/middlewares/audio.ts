@@ -13,6 +13,7 @@ if (!process.env.MICROSOFT_BING_SPEECH_KEY) {
 
 const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
 
+const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
 export default {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
         let hasAttachment = session.message.type === 'message' &&
@@ -25,11 +26,17 @@ export default {
         }
 
         let attachment = session.message.attachments[0]; // XXX support multiple attachments
-        let isValidAudioAttachment = attachment.contentType.startsWith('audio');
+
+        let isAudio = attachment.contentType.startsWith('audio/');
+        if (!isAudio) {
+            return next();
+        }
+
+        let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
 
         if (!isValidAudioAttachment) {
             logger.warn(`Audio format not supported ${attachment.contentType}`);
-            session.send('Sorry, I do not understand your audio message'); // TODO remove or change
+            session.send('Sorry, I do not understand your audio message');
             return next(new Therror(`Audio format not supported ${attachment.contentType}`));
         }
 
@@ -37,7 +44,7 @@ export default {
         let voiceRecognitionResult: VoiceRecognitionResponse;
 
         getRemoteResource(contentUrl)
-            .then(buffer => bingSpeechClient.voiceRecognition(buffer))
+            .then(buffer => bingSpeechClient.recognize(buffer))
             .then(voiceResult => {
                 logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
                 voiceRecognitionResult = voiceResult;
@@ -70,7 +77,8 @@ function getRemoteResource(url: string): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
         request({
             url: url,
-            method: 'HEAD'
+            method: 'HEAD',
+            timeout: 5000
         }, (err, headResult) => {
             let size = headResult && headResult.headers['content-length'];
 
@@ -82,7 +90,7 @@ function getRemoteResource(url: string): Promise<Buffer> {
             let data: any = [];
             size = 0;
 
-            let res = request({ url });
+            let res = request({ url, timeout: 10000 });
             res.on('data', chunk => {
                 data.push(chunk);
                 size += data.length;
