@@ -41,7 +41,7 @@
   "dependencies": {
     "@slack/client": "^3.6.0",
     "alfalfa": "^1.0.1",
-    "bingspeech-api-client": "^1.0.0",
+    "bingspeech-api-client": "^2.0.0",
     "botbuilder": "^3.2.3",
     "express": "^4.14.0",
     "logops": "^1.0.6",
