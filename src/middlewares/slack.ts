@@ -25,7 +25,7 @@ function notifySlack(text: string, webhookUrl: string) {
     let webhook = new IncomingWebhooks(webhookUrl);
     webhook.send({
         text: `Not able to classify: ${text}`,
-        channel: process.env.SLACK_CHANNEL || 'bot-classify',
+        channel: process.env.SLACK_CHANNEL || 'bot-classify',
         username: 'bot'
     });
 }
