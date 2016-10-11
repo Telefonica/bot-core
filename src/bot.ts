@@ -40,7 +40,7 @@ export class Bot extends BotBuilder.UniversalBot {
         this.endConversationAction(
             'cancel',
             'Good. I\'m here if you need something else',
-            { matches: /(^cancel$)|(^nevermind$)/i }
+            { matches: /(^cancel$)|(^never mind$)|(^forget it$)/i }
         );
     }
 
@@ -58,9 +58,7 @@ export class Bot extends BotBuilder.UniversalBot {
             logger.debug('Find library for intent [%s]', args.intent);
 
             let dialogName: string;
-            if (args.intent !== 'None') {
-                dialogName = this.findDialog(args.intent, libraries);
-            }
+            dialogName = this.findDialog(args.intent, libraries);
 
             if (dialogName) {
                 logger.debug({ args }, 'Starting library dialog [%s]', dialogName);
