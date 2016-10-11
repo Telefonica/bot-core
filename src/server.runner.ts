@@ -17,7 +17,7 @@ export interface ServerRunnerSettings {
     port: number;
     /** The application ID from the BotFramework account for the {@link Bot} */
     appId: string;
-    /** The application passwork from the BotFramework account for the {@link Bot} */
+    /** The application password from the BotFramework account for the {@link Bot} */
     appPassword: string;
 }
 
