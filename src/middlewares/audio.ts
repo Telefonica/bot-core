@@ -5,6 +5,11 @@ import * as logger from 'logops';
 import * as request from 'request';
 import Therror from 'therror';
 
+import { ObjectStorage } from '@telefonica/object-storage';
+
+const streamifier = require('streamifier');
+const storage = new ObjectStorage();
+
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
 if (!process.env.MICROSOFT_BING_SPEECH_KEY) {
@@ -43,7 +48,7 @@ export default {
         let contentUrl = attachment.contentUrl;
         let voiceRecognitionResult: VoiceRecognitionResponse;
 
-        getRemoteResource(contentUrl)
+        downloadRemoteResource(contentUrl)
             .then(buffer => bingSpeechClient.recognize(buffer))
             .then(voiceResult => {
                 logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
@@ -53,25 +58,49 @@ export default {
             .then(valid => {
                 if (valid) {
                     session.message.text = voiceRecognitionResult.header.lexical;
-                    next();
-                } else {
-                    next();
                 }
             })
+            .then(() => next())
             .catch(err => {
-                logger.warn(err, 'Bing Speech transcoding failed');
+                logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
                 next();
             });
+    },
+    send: (event: BotBuilder.IMessage, next: Function) => {
+        let audioOutputEnabled = !!process.env.ENABLE_AUDIO_OUTPUT;
+
+        //
+        // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
+        //      it is not so easy because we don't have the Session here.
+        //
+
+        if (audioOutputEnabled && event.text) {
+            bingSpeechClient.synthesize(event.text)
+                .then(response => storage.upload(streamifier.createReadStream(response.wave)))
+                .then(url => {
+                    event.attachments = event.attachments || [];
+                    event.attachments.push({
+                        contentType: 'audio/wave',
+                        contentUrl: url
+                    });
+                })
+                .then(() => next())
+                .catch(err => {
+                    logger.warn(err, 'Audio middleware: voice synthesis failed');
+                    next();
+                });
+        }
     }
 } as BotBuilder.IMiddlewareMap;
 
 /**
  * TODO this won't scale. Avoid the need of loading a resource in memory.
+ * XXX could be moved to a common 'utils'.
  *
  * @param {string} url - Remote resource location
  * @return {Promise<Buffer>} A Buffer with the remote resource contents
  */
-function getRemoteResource(url: string): Promise<Buffer> {
+function downloadRemoteResource(url: string): Promise<Buffer> {
     const MAX_SIZE = 10485760;
 
     return new Promise<Buffer>((resolve, reject) => {
