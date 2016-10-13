@@ -63,7 +63,7 @@ export default {
             .then(() => next())
             .catch(err => {
                 logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
-                next();
+                next(err);
             });
     },
     send: (event: BotBuilder.IMessage, next: Function) => {
@@ -74,22 +74,24 @@ export default {
         //      it is not so easy because we don't have the Session here.
         //
 
-        if (audioOutputEnabled && event.text) {
-            bingSpeechClient.synthesize(event.text)
-                .then(response => storage.upload(streamifier.createReadStream(response.wave)))
-                .then(url => {
-                    event.attachments = event.attachments || [];
-                    event.attachments.push({
-                        contentType: 'audio/wave',
-                        contentUrl: url
-                    });
-                })
-                .then(() => next())
-                .catch(err => {
-                    logger.warn(err, 'Audio middleware: voice synthesis failed');
-                    next();
-                });
+        if (!audioOutputEnabled || !event.text) {
+            return next();
         }
+
+        bingSpeechClient.synthesize(event.text)
+            .then(response => storage.upload(streamifier.createReadStream(response.wave)))
+            .then(url => {
+                event.attachments = event.attachments || [];
+                event.attachments.push({
+                    contentType: 'audio/wave',
+                    contentUrl: url
+                });
+            })
+            .then(() => next())
+            .catch(err => {
+                logger.warn(err, 'Audio middleware: voice synthesis failed');
+                next(err);
+            });
     }
 } as BotBuilder.IMiddlewareMap;
 
