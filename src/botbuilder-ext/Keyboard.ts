@@ -1,7 +1,7 @@
 /**
  * Exports the Keyboard interface from the BotBuilder, which es not natively exported.
- * NOTE: This interface is already natively exported by the BotBuilder in master,
- *       remember to remove this once the BotBuilder publishes it.
+ * XXX: This interface is already natively exported by the BotBuilder in master,
+ *      remember to remove this once the BotBuilder publishes it.
  */
 
 import * as BotBuilder from 'botbuilder';

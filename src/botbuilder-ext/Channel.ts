@@ -1,5 +1,5 @@
 /**
- * Exports the Channel interface from the BotBuilder, which es not natively exported.
+ * Exports the Channel interface from the BotBuilder, which is not natively exported.
  */
 
 import * as BotBuilder from 'botbuilder';
