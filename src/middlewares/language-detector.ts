@@ -4,7 +4,8 @@ import * as logger from 'logops';
 export default {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
         // TODO
-        logger.info({textLocale: session.message.textLocale, textFormat: session.message.textFormat});
+        // session.preferredLocale('en-us');
+        logger.info({preferredLocale: session.preferredLocale(), textLocale: session.message.textLocale}, 'Language detector');
         next();
     }
 } as BotBuilder.IMiddlewareMap;
