@@ -1,5 +1,5 @@
 import * as BotBuilder from 'botbuilder';
-import * as BotBuilderExt from '../botbuilder-ext';
+import { Channel } from '../botbuilder-ext';
 
 /**
  * Look for outgoing messages whose channel is DirectLine and carry some attachment whose contentType
@@ -11,8 +11,8 @@ export default {
         if (event.type === 'message') {
             let message = <BotBuilder.IMessage>event;
 
-            let channelId = BotBuilderExt.Channel.getChannelId(message);
-            if (channelId === BotBuilderExt.Channel.channels.directline) {
+            let channelId = Channel.getChannelId(message);
+            if (channelId === Channel.channels.directline) {
                 if (message.attachments && message.attachments.length) {
                     // Pick the attachment with contentType 'application/vnd.microsoft.keyboard'
                     let choicesIndex = message.attachments
@@ -20,7 +20,8 @@ export default {
                             attachment.contentType === 'application/vnd.microsoft.keyboard');
                     // Move the attachment containing the choices to the channelData
                     let choices = message.attachments.splice(choicesIndex);
-                    message.sourceEvent = { choices: choices[0] };
+                    message.sourceEvent = message.sourceEvent || {};
+                    message.sourceEvent.choices = choices[0];
                 }
             }
         }
