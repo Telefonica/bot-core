@@ -16,8 +16,7 @@ export default {
                 if (message.attachments && message.attachments.length) {
                     // Pick the attachment with contentType 'application/vnd.microsoft.keyboard'
                     let choicesIndex = message.attachments
-                        .findIndex((attachment: BotBuilder.IAttachment) =>
-                            attachment.contentType === 'application/vnd.microsoft.keyboard');
+                        .findIndex(attachment => attachment.contentType === 'application/vnd.microsoft.keyboard');
                     // Move the attachment containing the choices to the channelData
                     let choices = message.attachments.splice(choicesIndex);
                     message.sourceEvent = message.sourceEvent || {};
