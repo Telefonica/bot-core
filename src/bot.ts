@@ -27,13 +27,10 @@ export class Bot extends BotBuilder.UniversalBot {
             resetCommand: /^reset/i
         }));
 
-        this.use(Audio);
-        this.use(DirectLinePrompts);
-        this.use(ServerLogger);
-        this.use(Normalizer);
-        this.use(LanguageDetector);
-        this.use(Logger);
-        this.use(Slack);
+        let middlewares = [
+            Audio, DirectLinePrompts, ServerLogger, Normalizer, LanguageDetector, Logger, Slack
+        ];
+        middlewares.forEach((middleware) => this.use(middleware));
 
         this.on('error', err => logger.error(err));
 
