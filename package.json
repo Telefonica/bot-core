@@ -44,6 +44,7 @@
     "alfalfa": "^1.0.1",
     "bingspeech-api-client": "^2.0.0",
     "botbuilder": "^3.3.0",
+    "cld": "^2.4.7",
     "express": "^4.14.0",
     "logops": "^1.0.6",
     "request": "^2.75.0",
