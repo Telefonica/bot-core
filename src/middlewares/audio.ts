@@ -20,6 +20,17 @@ const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_
 
 const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
 export default {
+    receive: (event: BotBuilder.IEvent, next: Function) => {
+        // TODO This is a HACK that replaces the user.id with the conversation.id
+        //      We need this because it's not possible to set the user id in a directline upload (ex. audio file).
+        //      That causes every incoming message to start a different dialog.
+        //      We must remove this hack once Microsoft fixes this issue.
+        logger.debug(`Replace user id ${event.address.user.id} with conversation id ${event.address.conversation.id}`);
+        event.address.user.id = event.address.conversation.id;
+        event.user.id = event.address.conversation.id;
+
+        next();
+    },
     botbuilder: (session: BotBuilder.Session, next: Function) => {
         let hasAttachment = session.message.type === 'message' &&
                             session.message &&
