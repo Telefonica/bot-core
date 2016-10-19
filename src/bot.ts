@@ -104,7 +104,8 @@ export class Bot extends BotBuilder.UniversalBot {
 }
 
 function createkUnhandledMessageResponse(session: BotBuilder.Session, args: any): BotBuilder.Message {
-    let msg = new BotBuilder.Message(session).text('Sorry, I didn\'t understand. Type "help" when you need help.');
+    let text = session.gettext('core.default') || 'I do not understand';
+    let msg = new BotBuilder.Message(session).text(text);
 
     // This metadata is sent in the channel data to mark this message as unhandled
     let source = session.message.source;
