@@ -1,5 +1,5 @@
-export { Bot, BotSettings } from './bot';
-export { BotRunner, ConsoleRunner, ServerRunner } from './runner'
+export * from './bot';
+export * from './runner'
 
 import * as BotBuilder from 'botbuilder';
 export { BotBuilder };

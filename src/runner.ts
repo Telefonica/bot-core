@@ -1,3 +1,3 @@
-export { Runner as BotRunner } from 'alfalfa';
-export { ConsoleRunner } from './console.runner';
-export { ServerRunner } from './server.runner';
+export * from 'alfalfa';
+export { BotConsoleRunner } from './console.runner';
+export { BotServerRunner } from './server.runner';

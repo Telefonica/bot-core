@@ -4,8 +4,7 @@ import * as BotBuilder from 'botbuilder';
 import * as http from 'http';
 import enableTerminate = require('server-terminate');
 
-import { BotRunner } from './runner';
-import { ServerRunner as AlfalfaServerRunner } from 'alfalfa';
+import { Runner, ServerRunner } from './runner';
 
 /**
  * Settings to create a {@link ServerRunner} instance
@@ -27,7 +26,7 @@ export interface ServerRunnerSettings {
  * This {@link BotRunner} is used mainly for non-development environments.
  * It will connect your {@link BotBuilder.UniversalBot} implementation with the MSBotFramework
  */
-export class ServerRunner extends AlfalfaServerRunner {
+export class BotServerRunner extends ServerRunner {
     settings: ServerRunnerSettings;
     bot: BotBuilder.UniversalBot;
 
@@ -42,6 +41,7 @@ export class ServerRunner extends AlfalfaServerRunner {
             server: server,
             port: settings.port
         });
+        this.name = 'BotServer';
 
         this.bot = settings.bot;
         this.settings = settings;
