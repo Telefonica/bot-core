@@ -104,6 +104,6 @@ export class Bot extends BotBuilder.UniversalBot {
 }
 
 function createkUnhandledMessageResponse(session: BotBuilder.Session, args: any): BotBuilder.Message {
-    let text = session.gettext('core.default') || 'I do not understand';
+    let text = session.gettext('core.default') || 'I do not understand';
     return new BotBuilder.Message(session).text(text);
 }
