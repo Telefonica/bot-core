@@ -7,12 +7,20 @@ import { PluginLoader } from './loader';
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
     models: BotBuilder.ILuisModelMap;
     plugins: string[];
+    /** Blacklisted intents that should never cancel a BotBuilderExt.Prompts dialog */
+    promptsCancelIntentsBlacklist?: string[];
+
 }
 
 export class Bot extends BotBuilder.UniversalBot {
     private loader: PluginLoader;
 
     constructor(settings: BotSettings) {
+        // Copy the `promptsCancelIntentsBlacklist` property to the `defaultDialogArgs` property
+        // which will be passed by the framework to initial dialogs
+        settings.defaultDialogArgs = settings.defaultDialogArgs || {};
+        settings.defaultDialogArgs.promptsCancelIntentsBlacklist = settings.promptsCancelIntentsBlacklist;
+
         super(null, settings);
 
         this.loader = new PluginLoader(settings.plugins);
@@ -51,17 +59,25 @@ export class Bot extends BotBuilder.UniversalBot {
         let libraries = this.loader.getLibraries();
         libraries.forEach(library => this.library(library));
 
-        intentDialog.onDefault((session: BotBuilder.Session, args: any, next: Function) => {
-            logger.debug('Find library for intent [%s]', args.intent);
+        intentDialog.onBegin((session: BotBuilder.Session, args: any, next: Function) => {
+            // Store the `promptsCancelIntentsBlacklist` in the `privateConversationData` so it is
+            // available from the session for any dialog
+            session.privateConversationData = session.privateConversationData || {};
+            session.privateConversationData.promptsCancelIntentsBlacklist = args.promptsCancelIntentsBlacklist;
+            next();
+        });
 
-            let dialogName = this.findDialog(args.intent, libraries);
+        intentDialog.onDefault((session: BotBuilder.Session, result: any) => {
+            logger.debug('Find library for intent [%s]', result.intent);
+
+            let dialogName = this.findDialog(result.intent, libraries);
 
             if (dialogName) {
-                logger.debug({ args }, 'Starting library dialog [%s]', dialogName);
-                session.beginDialog(dialogName, args);
+                logger.debug({ result }, 'Starting library dialog [%s]', dialogName);
+                session.beginDialog(dialogName, result);
             } else {
-                logger.warn({ intent: args.intent }, 'Unhandled intent');
-                let msg = createkUnhandledMessageResponse(session, args);
+                logger.warn({ intent: result.intent }, 'Unhandled intent');
+                let msg = createkUnhandledMessageResponse(session, result);
                 session.endDialog(msg);
             }
         });

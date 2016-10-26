@@ -7,35 +7,16 @@ const dl = require('botbuilder/lib/bots/Library');
 
 
 declare module 'botbuilder' {
+    // XXX: Remove this augmentation when Microsoft fixes the interface
+    interface IPromptArgs extends IPromptOptions {
+        enumValues?: string[];  // This is declared as `enumsValues` in botbuilder.d.ts (WTF!)
+        retryCnt?: number;  // This is not visible in the public interface definition
+    }
     // The following is needed because the Prompts.sendPrompt method has been declared as private
     // instead of protected, so it is not accessible from a child class
     interface Prompts extends Dialog {
         sendPrompt(session: Session, args: IPromptArgs, retry: boolean): void;
     }
-}
-
-export interface IPromptOptions extends BotBuilder.IPromptOptions {
-    /**
-     * Score threshold to consider that an intent must cancel the dialog.
-     * When the user enters a responses that does not match any of the given choices,
-     * such a response is converted to an intent and the dialog will be canceled
-     * if the score of such an intent is higher that this value.
-     */
-    scoreThresholdToCancel?: number;
-    /**
-     * Whether the intent None must cancel the dialog.
-     * When the user enters a responses that does not match any of the given choices,
-     * such a response is converted to an intent and the dialog will be canceled
-     * if this value is true and such an intent is None.
-     */
-    cancelOnNone?: boolean;
-}
-
-export interface IPromptArgs extends IPromptOptions {
-    promptType: BotBuilder.PromptType;
-    prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage;
-    enumValues?: string[];
-    retryCnt?: number;
 }
 
 export interface IPromptResult<T> extends BotBuilder.IPromptResult<T> {
@@ -63,7 +44,7 @@ export interface IPromptAttachmentResult extends IPromptResult<BotBuilder.IAttac
 
 export class Prompts extends BotBuilder.Prompts {
     public replyReceived(session: BotBuilder.Session, result?: IPromptResult<any>): void {
-        var args: IPromptArgs = session.dialogData;
+        var args: BotBuilder.IPromptArgs = session.dialogData;
 
         if (result.error || result.resumed === BotBuilder.ResumeReason.completed) {
             // There was an error or the user has replied something that has been recognized by the Prompt
@@ -73,6 +54,7 @@ export class Prompts extends BotBuilder.Prompts {
         }
 
         logger.debug('The reply has not been recognized. Looking for an intent to change the dialog on the fly...');
+
         let dlg = <BotBuilder.IntentDialog>session.library.dialog('/');
         let context: BotBuilder.IRecognizeContext = {
             message: session.message,
@@ -80,8 +62,7 @@ export class Prompts extends BotBuilder.Prompts {
             dialogData: session.dialogData,
             activeDialog: true
         };
-
-        dlg.recognize(context, (err: Error, res: BotBuilder.IIntentRecognizerResult) => {
+        dlg.recognize(context, (err: Error, recognitionResult: BotBuilder.IIntentRecognizerResult) => {
             if (err) {
                 // XXX: Maybe we prefer to remain retrying the dialog if the utterance cannot be recognized?
                 logger.error(err, 'The recognition has failed');
@@ -91,18 +72,24 @@ export class Prompts extends BotBuilder.Prompts {
                 return;
             }
 
-            args.cancelOnNone = args.cancelOnNone || false;
-            args.scoreThresholdToCancel = args.scoreThresholdToCancel || 0.6;
-            if ((args.cancelOnNone && res.intent === 'None') || (res.score > args.scoreThresholdToCancel)) {
-                // The user reply has been recognized as an intent so this dialog is gonna be cancelled
+            logger.debug('The user reply has been recognized as the intent "%s" with score %d',
+                recognitionResult.intent, recognitionResult.score);
+
+            let cancelIntentsBlacklist = session.privateConversationData.promptsCancelIntentsBlacklist || [];
+            if (recognitionResult.intent && cancelIntentsBlacklist.indexOf(recognitionResult.intent) === -1) {
+                // The user reply has been recognized as an intent and it is not blacklisted
+                // so this dialog is gonna be cancelled
                 result.promptType = args.promptType;
                 result.resumed = BotBuilder.ResumeReason.canceled;
-                result.score = res.score;
-                result.intent = Prompts.findDialog(session, res.intent);
-                result.entities = res.entities;
-                logger.debug('The user reply has been recognized as the entity "%s" with score %d', result.intent, result.score);
+                result.score = recognitionResult.score;
+                result.intent = Prompts.findDialog(session, recognitionResult.intent);
+                result.entities = recognitionResult.entities;
+                logger.debug('Cancelling dialog. Accepted intent "%s" with score %d', result.intent, result.score);
                 session.endDialogWithResult(result);
                 return;
+            } else {
+                logger.debug('Discarding intent "%s" with score %d because it is blacklisted',
+                    recognitionResult.intent, recognitionResult.score);
             }
 
             if (typeof args.maxRetries === 'number' && args.retryCnt >= args.maxRetries) {
@@ -122,6 +109,7 @@ export class Prompts extends BotBuilder.Prompts {
         let dialogName: string;
         // The following hack is the only way to gain access to the registered libraries from the session
         // because the Library class has not a method to list al the registered libraries
+        // XXX use the `defaultDialogArgs` mechanism to pass the libraries
         let libraries = (<any>(session.library)).libraries;
         libraries = Object.keys(libraries).map(libraryName => libraries[libraryName]);
 
@@ -137,7 +125,7 @@ export class Prompts extends BotBuilder.Prompts {
 
     static text(session: BotBuilder.Session,
                 prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                options?: IPromptOptions): void {
+                options?: BotBuilder.IPromptOptions): void {
         logger.warn('The text method is not implemented. Use the original Prompts.text method from the BotBuilder module');
     }
 
@@ -150,8 +138,8 @@ export class Prompts extends BotBuilder.Prompts {
      */
     static number(session: BotBuilder.Session,
                   prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                  options?: IPromptOptions): void {
-        var args: IPromptArgs = <any>options || {};
+                  options?: BotBuilder.IPromptOptions): void {
+        var args: BotBuilder.IPromptArgs = <any>options || {};
 
         args.promptType = BotBuilder.PromptType.number;
         args.prompt = prompt;
@@ -167,9 +155,9 @@ export class Prompts extends BotBuilder.Prompts {
      */
     static confirm(session: BotBuilder.Session,
                   prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                  options?: IPromptOptions): void {
+                  options?: BotBuilder.IPromptOptions): void {
         var locale: string = session.preferredLocale();
-        var args: IPromptArgs = <any>options || {};
+        var args: BotBuilder.IPromptArgs = <any>options || {};
 
         args.promptType = BotBuilder.PromptType.confirm;
         args.prompt = prompt;
@@ -191,10 +179,10 @@ export class Prompts extends BotBuilder.Prompts {
     static choice(session: BotBuilder.Session,
                   prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
                   choices: string | Object | string[],
-                  options?: IPromptOptions): void {
+                  options?: BotBuilder.IPromptOptions): void {
         let channels = BotBuilderExt.Channel.channels;
         let channelId = BotBuilderExt.Channel.getChannelId(session);
-        let args: IPromptArgs = <any>options || {};
+        let args: BotBuilder.IPromptArgs = <any>options || {};
 
         let defaultListStyle: BotBuilder.ListStyle;
         if ([channels.directline, channels.console, channels.emulator, channels.skype].indexOf(channelId) !== -1) {
@@ -225,8 +213,8 @@ export class Prompts extends BotBuilder.Prompts {
      */
     static time(session: BotBuilder.Session,
                 prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                options?: IPromptOptions): void {
-        var args: IPromptArgs = <any>options || {};
+                options?: BotBuilder.IPromptOptions): void {
+        var args: BotBuilder.IPromptArgs = <any>options || {};
 
         args.promptType = BotBuilder.PromptType.time;
         args.prompt = prompt;
@@ -242,8 +230,8 @@ export class Prompts extends BotBuilder.Prompts {
      */
     static attachment(session: BotBuilder.Session,
                       prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                      options?: IPromptOptions): void {
-        var args: IPromptArgs = <any>options || {};
+                      options?: BotBuilder.IPromptOptions): void {
+        var args: BotBuilder.IPromptArgs = <any>options || {};
 
         args.promptType = BotBuilder.PromptType.attachment;
         args.prompt = prompt;
@@ -252,7 +240,7 @@ export class Prompts extends BotBuilder.Prompts {
 }
 dl.systemLib.dialog(`${consts.DialogId.Prompts}Ext`, new Prompts());
 
-function beginPrompt(session: BotBuilder.Session, args: IPromptArgs) {
+function beginPrompt(session: BotBuilder.Session, args: BotBuilder.IPromptArgs) {
     // Fixup prompts
     if (typeof args.prompt === 'object' && (<BotBuilder.IIsMessage>args.prompt).toMessage) {
         args.prompt = (<BotBuilder.IIsMessage>args.prompt).toMessage();
