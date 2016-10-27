@@ -12,15 +12,17 @@ export default {
             let message = <BotBuilder.IMessage>event;
 
             let channelId = Channel.getChannelId(message);
-            if (channelId === Channel.channels.directline) {
+            if (channelId === Channel.channels.directline || channelId === Channel.channels.console) {
                 if (message.attachments && message.attachments.length) {
                     // Pick the attachment with contentType 'application/vnd.microsoft.keyboard'
                     let choicesIndex = message.attachments
                         .findIndex(attachment => attachment.contentType === 'application/vnd.microsoft.keyboard');
-                    // Move the attachment containing the choices to the channelData
-                    let choices = message.attachments.splice(choicesIndex);
-                    message.sourceEvent = message.sourceEvent || {};
-                    message.sourceEvent.choices = choices[0];
+                    if (choicesIndex !== -1) {
+                        // Move the attachment containing the choices to the channelData
+                        let choices = message.attachments.splice(choicesIndex);
+                        message.sourceEvent = message.sourceEvent || {};
+                        message.sourceEvent.choices = choices[0];
+                    }
                 }
             }
         }
