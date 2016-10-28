@@ -12,7 +12,7 @@ export default {
             let message = <BotBuilder.IMessage>event;
 
             let channelId = Channel.getChannelId(message);
-            if (channelId === Channel.channels.directline || channelId === Channel.channels.console) {
+            if (channelId === Channel.channels.directline) {
                 if (message.attachments && message.attachments.length) {
                     // Pick the attachment with contentType 'application/vnd.microsoft.keyboard'
                     let choicesIndex = message.attachments
