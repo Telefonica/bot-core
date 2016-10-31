@@ -5,7 +5,7 @@ import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio, Slack, Direc
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
-    models: BotBuilder.ILuisModelMap;
+    modelMapSet: BotBuilder.ILuisModelMap[];
     plugins: string[];
     /** Blacklisted intents that should never cancel a BotBuilderExt.Prompts dialog */
     promptsCancelIntentsBlacklist?: string[];
@@ -45,7 +45,7 @@ export class Bot extends BotBuilder.UniversalBot {
         this.endConversationAction(
             'cancel',
             'core.cancel',
-            { matches: /(^cancel$)|(^never mind$)|(^forget it$)/i }
+            {matches: /(^cancel$)|(^never mind$)|(^forget it$)/i}
         );
     }
 
@@ -99,23 +99,18 @@ export class Bot extends BotBuilder.UniversalBot {
     }
 
     private initializeLanguageRecognizers(): BotBuilder.IIntentRecognizer[] {
-        let modelMap = this.get('models') as BotBuilder.ILuisModelMap;
+        let modelMapSet = this.get('modelMapSet') as BotBuilder.ILuisModelMap[];
 
-        if (!modelMap) {
+        if (!modelMapSet || !modelMapSet.length) {
             logger.error('No LUIS models defined');
             return [];
         }
 
-        return Object.keys(modelMap).map(key => {
-            let model = modelMap[key];
-            if (!model) {
-                logger.error('LUIS model %s is undefined. Skip.', key);
-                return;
-            }
+        logger.info('Load LUIS models', modelMapSet);
 
-            logger.info('Load LUIS model %s', key);
-            return new BotBuilder.LuisRecognizer(modelMap[key]);
-        }).filter(recognizer => !!recognizer);
+        return modelMapSet.map((modelMap: BotBuilder.ILuisModelMap) => {
+            return new BotBuilder.LuisRecognizer(modelMap);
+        });
     }
 }
 
