@@ -79,7 +79,8 @@ function fakeBotSession(): BotBuilder.Session {
         onSend: null,
         library: null,
         middleware: [],
-        dialogId: null
+        dialogId: null,
+        localizer: null
     };
 
     let session = new BotBuilder.Session(options);
