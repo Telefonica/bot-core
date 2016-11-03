@@ -78,7 +78,7 @@ export default {
             });
     },
     send: (event: BotBuilder.IMessage, next: Function) => {
-        let audioOutputEnabled = !!process.env.ENABLE_AUDIO_OUTPUT;
+        let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === "true";
 
         //
         // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
