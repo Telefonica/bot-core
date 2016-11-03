@@ -40,10 +40,10 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@slack/client": "^3.6.0",
-    "@telefonica/object-storage": "^1.0.0",
+    "@telefonica/object-storage": "^2.1.0",
     "alfalfa": "^2.1.0",
     "bingspeech-api-client": "^2.0.0",
-    "botbuilder": "3.4.2",
+    "botbuilder": "3.4.4",
     "cld": "^2.4.7",
     "express": "^4.14.0",
     "logops": "^1.0.6",
