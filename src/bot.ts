@@ -9,7 +9,6 @@ export interface BotSettings extends BotBuilder.IUniversalBotSettings {
     plugins: string[];
     /** Blacklisted intents that should never cancel a BotBuilderExt.Prompts dialog */
     promptsCancelIntentsBlacklist?: string[];
-
 }
 
 export class Bot extends BotBuilder.UniversalBot {
