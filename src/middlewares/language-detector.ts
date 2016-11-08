@@ -1,7 +1,6 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
-
-const cld = require('cld');
+const franc = require('franc');
 
 export default {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
@@ -29,44 +28,30 @@ function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<
     });
 }
 
-const MIN_CLASSIFIABLE_SENTENCE_LENGTH = 5;
+const detectorParameters = {
+    minLength: 4,
+    whitelist: ['eng', 'spa'] // XXX support more languages in the future
+};
 
 function resolveLocale(session: BotBuilder.Session): Promise<string> {
     const defaultLocale = session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
 
     return new Promise((resolve, reject) => {
-        let text = session.message.text;
+        let locale = defaultLocale;
 
-        // XXX CLD is not very reliable for short words. This algorithm can be improved (ex. use a dictionary)
-        if (text.length < MIN_CLASSIFIABLE_SENTENCE_LENGTH) {
-            return resolve(defaultLocale);
+        let code = franc(session.message.text, detectorParameters);
+        switch (code) {
+            case 'spa':
+                locale = 'es-es';
+                break;
+            case 'eng':
+                locale = 'en-us';
+                break;
+            default:
+                logger.info('Not able to determine message language');
+                break;
         }
 
-        cld.detect(text, {}, (err: any, result: any) => {
-            if (err) {
-                logger.info(err, 'Not able to determine message language');
-                return resolve(defaultLocale);
-            }
-
-            logger.info(result, 'Language detection (CLD)');
-            if (!result.reliable) {
-                return resolve(defaultLocale);
-            }
-
-            let code = result.languages[0].code;
-
-            // XXX improve this matching algorithm
-            let locale = defaultLocale;
-            switch (code) {
-                case 'es':
-                    locale = 'es-es';
-                    break;
-                case 'en':
-                    locale = 'en-us';
-                    break;
-            }
-
-            return resolve(locale);
-        });
+        return resolve(locale);
     });
 }
