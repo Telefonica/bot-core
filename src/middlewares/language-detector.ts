@@ -34,6 +34,11 @@ const detectorParameters = {
 };
 
 function resolveLocale(session: BotBuilder.Session): Promise<string> {
+    let locale = detectClientLocale(session.message);
+    if (locale) {
+        return Promise.resolve(locale);
+    }
+
     const defaultLocale = session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
 
     return new Promise((resolve, reject) => {
@@ -54,4 +59,17 @@ function resolveLocale(session: BotBuilder.Session): Promise<string> {
 
         return resolve(locale);
     });
+}
+
+function detectClientLocale(message: BotBuilder.IMessage): string {
+    if (message.source === 'directline') { // TODO use Channel.directline in the next botbuilder release
+        let channelData = message.sourceEvent;
+        if (channelData.headers && channelData.headers['Accept-Language']) {
+            let code = channelData.headers['Accept-Language'];
+            let normalizedCode = new String(code).replace('_', '-').toLowerCase(); // en_US -> en-us
+            return normalizedCode;
+        }
+    }
+
+    return null;
 }
