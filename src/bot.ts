@@ -35,7 +35,13 @@ export class Bot extends BotBuilder.UniversalBot {
         }));
 
         let middlewares = [
-            Audio, DirectLinePrompts, ServerLogger, Normalizer, /*LanguageDetector, */Logger, Slack
+            Audio,
+            DirectLinePrompts,
+            ServerLogger,
+            Normalizer,
+            /* LanguageDetector, */ // TODO disabled until we improve our language detector algorithm
+            Logger,
+            Slack
         ];
         middlewares.forEach((middleware) => this.use(middleware));
 
