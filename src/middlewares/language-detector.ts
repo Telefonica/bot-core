@@ -66,7 +66,7 @@ function detectClientLocale(message: BotBuilder.IMessage): string {
         let channelData = message.sourceEvent;
         if (channelData && channelData.headers && channelData.headers['Accept-Language']) {
             let code = channelData.headers['Accept-Language'];
-            let normalizedCode = new String(code).replace('_', '-').toLowerCase(); // en_US -> en-us
+            let normalizedCode = String(code).replace('_', '-').toLowerCase(); // en_US -> en-us
             return normalizedCode;
         }
     }

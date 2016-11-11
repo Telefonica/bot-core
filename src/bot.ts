@@ -1,7 +1,7 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 
-import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio, Slack, DirectLinePrompts } from './middlewares';
+import { LanguageDetector, Logger, ServerLogger, Normalizer, Audio, Slack, DirectLinePrompts, EventHub } from './middlewares';
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
@@ -41,6 +41,7 @@ export class Bot extends BotBuilder.UniversalBot {
             Normalizer,
             /* LanguageDetector, */ // TODO disabled until we improve our language detector algorithm
             Logger,
+            EventHub,
             Slack
         ];
         middlewares.forEach((middleware) => this.use(middleware));
