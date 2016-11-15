@@ -1,18 +1,20 @@
 import * as BotBuilder from 'botbuilder';
+import * as logger from 'logops';
 
+/**
+ * Logs the incoming message received by the bot from the BotFramework
+ */
 export default {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
-        if (/^\/log on/i.test(session.message.text)) {
-            session.userData.isLogging = true;
-            session.send('Logging is now turned on');
-        } else if (/^\/log off/i.test(session.message.text)) {
-            session.userData.isLogging = false;
-            session.send('Logging is now turned off');
-        } else {
-            if (session.userData.isLogging) {
-                session.send(JSON.stringify(session.message));
-            }
-            next();
-        }
+        logger.info(session.sessionState, 'Session');
+        next();
+    },
+    receive: (event: BotBuilder.IEvent, next: Function) => {
+        logger.info(event, 'Message IN');
+        next();
+    },
+    send: (event: BotBuilder.IEvent, next: Function) => {
+        logger.info(event, 'Message OUT');
+        next();
     }
 } as BotBuilder.IMiddlewareMap;
