@@ -39,7 +39,7 @@ export class Bot extends BotBuilder.UniversalBot {
             DirectLinePrompts,
             Logger,
             Normalizer,
-            /* LanguageDetector, */ // TODO disabled until we improve our language detector algorithm
+            LanguageDetector,
             Admin,
             EventHub,
             Slack

@@ -1,6 +1,5 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
-const franc = require('franc');
 
 export default {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
@@ -28,41 +27,18 @@ function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<
     });
 }
 
-const detectorParameters = {
-    minLength: 4,
-    whitelist: ['eng', 'spa'] // XXX support more languages in the future
-};
-
 function resolveLocale(session: BotBuilder.Session): Promise<string> {
     let locale = detectClientLocale(session.message);
     if (locale) {
         return Promise.resolve(locale);
     }
 
-    const defaultLocale = session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
-
-    return new Promise((resolve, reject) => {
-        let locale = defaultLocale;
-
-        let code = franc(session.message.text, detectorParameters);
-        switch (code) {
-            case 'spa':
-                locale = 'es-es';
-                break;
-            case 'eng':
-                locale = 'en-us';
-                break;
-            default:
-                logger.info('Not able to determine message language');
-                break;
-        }
-
-        return resolve(locale);
-    });
+    locale = session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
+    return Promise.resolve(locale);
 }
 
 function detectClientLocale(message: BotBuilder.IMessage): string {
-    if (message.source === 'directline') { // TODO use Channel.directline in the next botbuilder release
+    if (message.source === 'directline') { // XXX use Channel.directline in the next botbuilder release
         let channelData = message.sourceEvent;
         if (channelData && channelData.headers && channelData.headers['Accept-Language']) {
             let code = channelData.headers['Accept-Language'];
