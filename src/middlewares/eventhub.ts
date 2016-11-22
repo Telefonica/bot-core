@@ -25,7 +25,7 @@ function sendEventHub(payload: any) {
     let eventHubKeyName = process.env.EVENTHUB_KEYNAME; // ex. 'send'
     let eventHubKey = process.env.EVENTHUB_KEY; // ex. 'key';
 
-    let eventHubPulbisherUri = 'https://' + namespace + '.servicebus.windows.net' + '/' + hubname + '/publishers/' + publisher + '/messages';
+    let eventHubPulbisherUri = `https://${namespace}.servicebus.windows.net/${hubname}/publishers/${publisher}/messages`;
 
     // See http://msdn.microsoft.com/library/azure/dn170477.aspx
     function createTokenSAS(uri: string, keyName: string, key: string) {

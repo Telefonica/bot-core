@@ -34,17 +34,20 @@ export class Bot extends BotBuilder.UniversalBot {
             resetCommand: /^reset/i
         }));
 
+        let supportedLanguages = this.supportedLanguages();
+        logger.debug('Bot supported languages', supportedLanguages);
+
         let middlewares = [
             Audio,
             DirectLinePrompts,
             Logger,
             Normalizer,
-            LanguageDetector,
+            LanguageDetector(supportedLanguages),
             Admin,
             EventHub,
             Slack
         ];
-        middlewares.forEach((middleware) => this.use(middleware));
+        this.use(middlewares);
 
         this.on('error', err => logger.error(err));
 
@@ -117,6 +120,15 @@ export class Bot extends BotBuilder.UniversalBot {
         return modelMapSet.map((modelMap: BotBuilder.ILuisModelMap) => {
             return new BotBuilder.LuisRecognizer(modelMap);
         });
+    }
+
+    private supportedLanguages(): string[] {
+        let modelMapSet = this.get('modelMapSet') as BotBuilder.ILuisModelMap[];
+        let languages = modelMapSet.map((modelMap) => Object.keys(modelMap))
+                                   .reduce((a, b) => a.concat(b))
+                                   .filter((v, i, a) => a.indexOf(v) === i); // unique
+
+        return languages;
     }
 }
 

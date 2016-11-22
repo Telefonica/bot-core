@@ -1,35 +1,20 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 
-export default {
-    botbuilder: (session: BotBuilder.Session, next: Function) => {
-        resolveLocale(session)
-            .then((locale) => setSessionLocale(session, locale))
-            .then(() => next())
-            .catch((err) => next(err));
-    }
-} as BotBuilder.IMiddlewareMap;
-
-function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        session.preferredLocale(locale, (err) => {
-            if (err) {
-                logger.error(err, 'Not able to set preferred locale');
-                return reject(err);
-            }
-
-            // Save the locale as part of userData because a fallback value might be needed in future messages
-            session.userData.preferredLocale = locale;
-
-            logger.info({preferredLocale: session.preferredLocale(), textLocale: session.message.textLocale}, 'Language detector');
-            return resolve();
-        });
-    });
+export default function factory(supportedLanguages: string[]): BotBuilder.IMiddlewareMap {
+    return {
+        botbuilder: (session: BotBuilder.Session, next: Function) => {
+            resolveLocale(session, supportedLanguages)
+                .then((locale) => setSessionLocale(session, locale))
+                .then(() => next())
+                .catch((err) => next(err));
+        }
+    } as BotBuilder.IMiddlewareMap;
 }
 
-function resolveLocale(session: BotBuilder.Session): Promise<string> {
+function resolveLocale(session: BotBuilder.Session, supportedLanguages: string[]): Promise<string> {
     let locale = detectClientLocale(session.message);
-    if (locale) {
+    if (locale && supportedLanguages.indexOf(locale) >= 0) {
         return Promise.resolve(locale);
     }
 
@@ -48,4 +33,21 @@ function detectClientLocale(message: BotBuilder.IMessage): string {
     }
 
     return null;
+}
+
+function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        session.preferredLocale(locale, (err) => {
+            if (err) {
+                logger.error(err, 'Not able to set preferred locale');
+                return reject(err);
+            }
+
+            // Save the locale as part of userData because a fallback value might be needed in future messages
+            session.userData.preferredLocale = locale;
+
+            logger.info({preferredLocale: session.preferredLocale(), textLocale: session.message.textLocale}, 'Language detector');
+            return resolve();
+        });
+    });
 }
