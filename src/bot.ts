@@ -47,7 +47,7 @@ export class Bot extends BotBuilder.UniversalBot {
             EventHub,
             Slack
         ];
-        this.use(middlewares);
+        this.use(...middlewares);
 
         this.on('error', err => logger.error(err));
 
