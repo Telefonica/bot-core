@@ -18,7 +18,15 @@ function resolveLocale(session: BotBuilder.Session, supportedLanguages: string[]
         return Promise.resolve(locale);
     }
 
-    locale = session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
+    // Defaults to a locale following this rules:
+    //   1. Locale stored in the session (it is also available as the property 'BotBuilder.Data.PreferredLocale'
+    //      inside the userData storage).
+    //   2. preferredLocale from the userData storage which is set by the lookup-user module which knows about
+    //      the user context.
+    //   3. The default bot locale.
+    //   4. en-us.
+    // XXX: We should review 1. and 2. to homogenize places where locales are stored.
+    locale = session.preferredLocale() || session.userData.preferredLocale || process.env.BOT_DEFAULT_LOCALE || 'en-us';
     return Promise.resolve(locale);
 }
 
