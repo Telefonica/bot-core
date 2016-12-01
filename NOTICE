@@ -1,21 +1,4 @@
-## bot-core
-
-The core. Provides a managed and controlled runtime to develop bots.
-
-## Development
-
-Quick start
-```sh
-git clone git@github.com:Telefonica/yot-bot.git
-npm install 
-npm run dev
-```
-
-More info in the [Development section](DEVELOPMENT.md) 
-
-## LICENSE
-
-Copyright 2016 [Telefónica I+D](http://www.tid.es)
+Copyright 2016 Telefónica I+D
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

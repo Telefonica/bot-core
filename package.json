@@ -37,7 +37,7 @@
     "fourth platform"
   ],
   "author": "TDAF <tdaf@tid.es>",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "dependencies": {
     "@slack/client": "^3.6.0",
     "@telefonica/object-storage": "^2.1.0",
@@ -47,7 +47,6 @@
     "express": "^4.14.0",
     "logops": "^1.0.6",
     "request": "^2.75.0",
-    "server-terminate": "^1.3.1",
     "streamifier": "^0.1.1",
     "therror": "^2.1.0"
   },
