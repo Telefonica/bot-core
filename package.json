@@ -40,7 +40,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@slack/client": "^3.6.0",
-    "@telefonica/object-storage": "^2.1.0",
+    "@telefonica/object-storage": "^2.2.0",
     "alfalfa": "^2.1.0",
     "bingspeech-api-client": "^2.0.0",
     "botbuilder": "3.4.4",
