@@ -36,6 +36,10 @@ declare module 'botbuilder' {
     }
 }
 
+export interface IPromptConfirmOptions extends BotBuilder.IPromptOptions {
+    yesNoChoices?: string | Object | string[];
+}
+
 export interface IPromptResult<T> extends BotBuilder.IPromptResult<T> {
     intent?: string;
     entities?: BotBuilder.IEntity[];
@@ -169,19 +173,34 @@ export class Prompts extends BotBuilder.Prompts {
      * and the score is higher than `options.scoreThresholdToCancel` the dialog is canceled and the intent
      * and score are passed to the parent dialog. In case the recognized intent is None and `options.cancelOnNone`
      * is `false`, the dialog is not cancelled.
+     * Moreover, the options argument supports a new yesNoChoices property to set the affirmative/negative
+     * labels to be shown on buttons and to be recognized by the dialog, which allows to use this dialog with
+     * "Accept/Cancel" buttons.
      */
     static confirm(session: BotBuilder.Session,
                   prompt: string | string[] | BotBuilder.IMessage | BotBuilder.IIsMessage,
-                  options?: BotBuilder.IPromptOptions): void {
+                  options?: IPromptConfirmOptions): void {
         var locale: string = session.preferredLocale();
         var args: BotBuilder.IPromptArgs = <any>options || {};
 
         args.promptType = BotBuilder.PromptType.confirm;
         args.prompt = prompt;
-        args.enumValues = [
-            session.localizer.gettext(locale, 'confirm_yes', consts.Library.system),
-            session.localizer.gettext(locale, 'confirm_no', consts.Library.system)
-        ];
+        if (options.yesNoChoices) {
+            let yesNoChoices = BotBuilder.EntityRecognizer.expandChoices(options.yesNoChoices);
+            if (yesNoChoices.length !== 2) {
+                console.error('yesNoChoices must have length 2');
+                throw 'yesNoChoices must have length 2';
+            }
+            args.enumValues = [
+                session.localizer.gettext(locale, yesNoChoices[0]),
+                session.localizer.gettext(locale, yesNoChoices[1])
+            ];
+        } else {
+            args.enumValues = [
+                session.localizer.gettext(locale, 'confirm_yes', consts.Library.system),
+                session.localizer.gettext(locale, 'confirm_no', consts.Library.system)
+            ];
+        }
         args.listStyle = args.hasOwnProperty('listStyle') ? args.listStyle : BotBuilder.ListStyle.auto;
         beginPrompt(session, args);
     }

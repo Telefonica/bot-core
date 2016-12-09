@@ -29,6 +29,7 @@ import * as BotBuilderExt from '.';
  */
 function applyPatches() {
     patchPromptsChoice();
+    addLocalizedEntityRecognizerYesNoExp();
 }
 
 /**
@@ -54,6 +55,14 @@ function patchPromptsChoice() {
         }
         originalChoice(session, prompt, choices, opts);
     };
+}
+
+/**
+ * Adds Spanish yes/no responses to the EntityRecognizer to be used from Prompts.confirm dialogs.
+ */
+function addLocalizedEntityRecognizerYesNoExp() {
+    (<any>(BotBuilder.EntityRecognizer)).yesExp = /^(1|y|yes|yep|sure|ok|true|s|si|sí|sip|vale)/i;
+    (<any>(BotBuilder.EntityRecognizer)).noExp = /^(2|n|no|nope|not|false|nop)/i;
 }
 
 // Apply all the patches when loading this module
