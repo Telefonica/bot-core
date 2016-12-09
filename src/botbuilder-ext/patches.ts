@@ -58,7 +58,14 @@ function patchPromptsChoice() {
 }
 
 /**
- * Adds Spanish yes/no responses to the EntityRecognizer to be used from Prompts.confirm dialogs.
+ * Add localized yes/no responses to the EntityRecognizer to be used from Prompts.confirm dialogs.
+ * The original EntityRecognizer only accepts English yes/no-like responses. The recognizer also
+ * understand values passed in enumValues but this allows to understand a "sí" response while the
+ * label passes in enumValues is "Aceptar".
+ *
+ * Note that the standard behavior is to associate "1" with affirmative responses and "2" with
+ * negative responses. That prevent us from swapping the order of the yes/no buttons in the dialog
+ * w/o breaking backwards compatibility.
  */
 function addLocalizedEntityRecognizerYesNoExp() {
     (<any>(BotBuilder.EntityRecognizer)).yesExp = /^(1|y|yes|yep|sure|ok|true|s|si|sí|sip|vale)/i;
