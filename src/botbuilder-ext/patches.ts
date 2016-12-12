@@ -68,8 +68,8 @@ function patchPromptsChoice() {
  * w/o breaking backwards compatibility.
  */
 function addLocalizedEntityRecognizerYesNoExp() {
-    (<any>(BotBuilder.EntityRecognizer)).yesExp = /^(1|y|yes|yep|sure|ok|true|s|si|sí|sip|vale)/i;
-    (<any>(BotBuilder.EntityRecognizer)).noExp = /^(2|n|no|nope|not|false|nop)/i;
+    (<any>(BotBuilder.EntityRecognizer)).yesExp = /^(1|y|yes|yep|sure|of course|ok|true|s|si|sí|sip|vale)(\W|$)/i;
+    (<any>(BotBuilder.EntityRecognizer)).noExp = /^(2|n|no|nope|not|false|nop)(\W|$)/i;
 }
 
 // Apply all the patches when loading this module
