@@ -17,32 +17,35 @@
 
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
+const IncomingWebhooks = require('@slack/client').IncomingWebhook;
 
-/**
- * Notify Slack about not recognized utterances
- */
-export default {
+export default function factory(): BotBuilder.IMiddlewareMap {
+  if (!process.env.SLACK_WEBHOOK_URL) {
+    logger.warn('Slack Middleware is disabled. SLACK_WEBHOOK_URL env var needed');
+    return {
+      // To avoid botbuilder console.warn trace!! WTF
+      botbuilder: (session: BotBuilder.Session, next: Function) => next()
+    };
+  }
+
+  let webhook = new IncomingWebhooks(process.env.SLACK_WEBHOOK_URL);
+
+  return {
+    /**
+     * Notify Slack about not recognized utterances
+     */
     send: (event: BotBuilder.IEvent, next: Function) => {
-        if (process.env.SLACK_WEBHOOK_URL) {
-            if (event.sourceEvent.intent === 'None') {
-                notifySlack(event.sourceEvent.text, process.env.SLACK_WEBHOOK_URL);
-            }
-        }
+      if (event.sourceEvent.intent === 'None') {
+        // Fire and forget slack notification.
+        webhook.send({
+          text: `Not able to classify: ${event.sourceEvent.text}`,
+          channel: process.env.SLACK_CHANNEL || 'bot-classify',
+          username: process.env.BOT_NAME || 'bot'
+        });
+      }
 
-        next();
+      next();
     }
-} as BotBuilder.IMiddlewareMap;
-
-/**
- * Fire and forget slack notification.
- */
-function notifySlack(text: string, webhookUrl: string) {
-    var IncomingWebhooks = require('@slack/client').IncomingWebhook;
-
-    let webhook = new IncomingWebhooks(webhookUrl);
-    webhook.send({
-        text: `Not able to classify: ${text}`,
-        channel: process.env.SLACK_CHANNEL || 'bot-classify',
-        username: process.env.BOT_NAME || 'bot'
-    });
+  } as BotBuilder.IMiddlewareMap;
 }
+

@@ -23,14 +23,22 @@ import * as crypto from 'crypto';
 /**
  * Sends the incoming message received by the bot to Azure Event Hub
  */
-export default {
+export default function factory(): BotBuilder.IMiddlewareMap {
+  if (!process.env.EVENTHUB_NAMESPACE) {
+    logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE env var needed');
+    return {
+      // To avoid botbuilder console.warn trace!! WTF
+      botbuilder: (session: BotBuilder.Session, next: Function) => next()
+    };
+  }
+
+  return {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
-        if (process.env.EVENTHUB_NAMESPACE) {
-           sendEventHub(session.message); // best-effort, no callback
-        }
-        next();
+      sendEventHub(session.message); // best-effort, no callback
+      next();
     }
-} as BotBuilder.IMiddlewareMap;
+  } as BotBuilder.IMiddlewareMap;
+}
 
 function sendEventHub(payload: any) {
     // Event Hubs parameters
