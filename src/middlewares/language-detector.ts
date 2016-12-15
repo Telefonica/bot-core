@@ -23,7 +23,7 @@ export default function factory(supportedLanguages: string[]): BotBuilder.IMiddl
         botbuilder: (session: BotBuilder.Session, next: Function) => {
             resolveLocale(session, supportedLanguages)
                 .then((locale) => setSessionLocale(session, locale))
-                .then(() => next())
+                .then((locale) => next())
                 .catch((err) => next(err));
         }
     } as BotBuilder.IMiddlewareMap;
@@ -60,7 +60,7 @@ function detectClientLocale(message: BotBuilder.IMessage): string {
     return null;
 }
 
-function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<void> {
+function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<string> {
     return new Promise((resolve, reject) => {
         session.preferredLocale(locale, (err) => {
             if (err) {
@@ -71,8 +71,12 @@ function setSessionLocale(session: BotBuilder.Session, locale: string): Promise<
             // Save the locale as part of userData because a fallback value might be needed in future messages
             session.userData.preferredLocale = locale;
 
-            logger.info({preferredLocale: session.preferredLocale(), textLocale: session.message.textLocale}, 'Language detector');
-            return resolve();
+            logger.info({
+              preferredLocale: session.preferredLocale(),
+              textLocale: session.message.textLocale
+            }, 'Language detector');
+
+            resolve(locale);
         });
     });
 }

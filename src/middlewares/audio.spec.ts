@@ -28,7 +28,7 @@ describe('Audio Middleware', () => {
             .reply(200, new Buffer('fake-audio-binary-contents'));
 
         let session = fakeBotSession();
-        let middleware: BotBuilder.ISessionMiddleware = audio.default.botbuilder as BotBuilder.ISessionMiddleware;
+        let middleware: BotBuilder.ISessionMiddleware = audio.default().botbuilder as BotBuilder.ISessionMiddleware;
 
         middleware(session, () => {
             expect(session.message.text).to.eq('This is a text');
@@ -45,7 +45,7 @@ describe('Audio Middleware', () => {
             .reply(200);
 
         let session = fakeBotSession();
-        let middleware: BotBuilder.ISessionMiddleware = audio.default.botbuilder as BotBuilder.ISessionMiddleware;
+        let middleware: BotBuilder.ISessionMiddleware = audio.default().botbuilder as BotBuilder.ISessionMiddleware;
 
         middleware(session, () => {
             expect(session.message.text).to.eq(''); // not replaced

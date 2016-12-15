@@ -23,94 +23,100 @@ import * as request from 'request';
 import Therror from 'therror';
 
 import { ObjectStorage } from '@telefonica/object-storage';
-
-const streamifier = require('streamifier');
-const storage = new ObjectStorage();
-
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
-if (!process.env.MICROSOFT_BING_SPEECH_KEY) {
-    logger.warn('No MICROSOFT_BING_SPEECH_KEY');
-}
+const streamifier = require('streamifier');
 
-const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
+export default function factory(): BotBuilder.IMiddlewareMap {
+  if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.S3_ENDPOINT) {
+    logger.warn('Audio Middleware is disabled. MICROSOFT_BING_SPEECH_KEY and S3_ENDPOINT env vars needed');
+    return {
+      // To avoid botbuilder console.warn trace!! WTF
+      botbuilder: (session: BotBuilder.Session, next: Function) => next()
+    };
+  }
 
-const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
-export default {
+  const storage = new ObjectStorage();
+
+  const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
+
+  const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
+  return {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
-        let hasAttachment = session.message.type === 'message' &&
-                            session.message &&
-                            session.message.attachments &&
-                            session.message.attachments.length > 0;
+      let hasAttachment = session.message.type === 'message' &&
+                          session.message &&
+                          session.message.attachments &&
+                          session.message.attachments.length > 0;
 
-        if (!hasAttachment) {
-            return next();
-        }
+      if (!hasAttachment) {
+        return next();
+      }
 
-        let attachment = session.message.attachments[0]; // XXX support multiple attachments
+      let attachment = session.message.attachments[0]; // XXX support multiple attachments
 
-        let isAudio = attachment.contentType.startsWith('audio/');
-        if (!isAudio) {
-            return next();
-        }
+      let isAudio = attachment.contentType.startsWith('audio/');
+      if (!isAudio) {
+        return next();
+      }
 
-        let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
+      let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
 
-        if (!isValidAudioAttachment) {
-            logger.warn(`Audio format not supported ${attachment.contentType}`);
-            session.send('Sorry, I do not understand your audio message');
-            return next(new Therror(`Audio format not supported ${attachment.contentType}`));
-        }
+      if (!isValidAudioAttachment) {
+        logger.warn(`Audio format not supported ${attachment.contentType}`);
+        session.send('Sorry, I do not understand your audio message');
+        return next(new Therror(`Audio format not supported ${attachment.contentType}`));
+      }
 
-        let contentUrl = attachment.contentUrl;
-        let voiceRecognitionResult: VoiceRecognitionResponse;
+      let contentUrl = attachment.contentUrl;
+      let voiceRecognitionResult: VoiceRecognitionResponse;
 
-        downloadRemoteResource(contentUrl)
-            .then(buffer => bingSpeechClient.recognize(buffer))
-            .then(voiceResult => {
-                logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
-                voiceRecognitionResult = voiceResult;
-                return evaluateVoiceResponse(voiceResult);
-            })
-            .then(valid => {
-                if (valid) {
-                    session.message.text = voiceRecognitionResult.header.lexical;
-                }
-            })
-            .then(() => next())
-            .catch(err => {
-                logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
-                next(err);
-            });
+      downloadRemoteResource(contentUrl)
+        .then(buffer => bingSpeechClient.recognize(buffer))
+        .then(voiceResult => {
+            logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
+            voiceRecognitionResult = voiceResult;
+            return evaluateVoiceResponse(voiceResult);
+        })
+        .then(valid => {
+            if (valid) {
+                session.message.text = voiceRecognitionResult.header.lexical;
+            }
+        })
+        .then(() => next())
+        .catch(err => {
+            logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
+            next(err);
+        });
     },
     send: (event: BotBuilder.IMessage, next: Function) => {
-        let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === 'true';
+      let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === 'true';
 
-        //
-        // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
-        //      it is not so easy because we don't have the Session here.
-        //
+      //
+      // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
+      //      it is not so easy because we don't have the Session here.
+      //
 
-        if (!audioOutputEnabled || !event.text) {
-            return next();
-        }
+      if (!audioOutputEnabled || !event.text) {
+        return next();
+      }
 
-        bingSpeechClient.synthesize(event.text)
-            .then(response => storage.upload(streamifier.createReadStream(response.wave)))
-            .then(url => {
-                event.attachments = event.attachments || [];
-                event.attachments.push({
-                    contentType: 'audio/wave',
-                    contentUrl: url
-                });
-            })
-            .then(() => next())
-            .catch(err => {
-                logger.warn(err, 'Audio middleware: voice synthesis failed');
-                next(err);
+      bingSpeechClient.synthesize(event.text)
+        .then(response => storage.upload(streamifier.createReadStream(response.wave)))
+        .then(url => {
+            event.attachments = event.attachments || [];
+            event.attachments.push({
+                contentType: 'audio/wave',
+                contentUrl: url
             });
+        })
+        .then(() => next())
+        .catch(err => {
+            logger.warn(err, 'Audio middleware: voice synthesis failed');
+            next(err);
+        });
     }
-} as BotBuilder.IMiddlewareMap;
+  } as BotBuilder.IMiddlewareMap;
+}
 
 /**
  * TODO this won't scale. Avoid the need of loading a resource in memory.

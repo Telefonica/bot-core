@@ -55,14 +55,14 @@ export class Bot extends BotBuilder.UniversalBot {
         logger.debug('Bot supported languages', supportedLanguages);
 
         let middlewares = [
-            Audio,
+            Audio(),
             DirectLinePrompts,
             Logger,
             Normalizer,
             LanguageDetector(supportedLanguages),
             Admin,
-            EventHub,
-            Slack
+            EventHub(),
+            Slack()
         ];
         this.use(...middlewares);
 
