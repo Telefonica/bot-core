@@ -1,6 +1,6 @@
 ## bot-core
 
-The core. Provides a managed and controlled runtime to develop bots.
+The bot core. Provides a managed and controlled runtime to develop bots.
 
 ## Development
 
