@@ -4,6 +4,9 @@
   "description": "Bot Core package to run bots",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
   "scripts-info": {
     "info": "List available scripts",
     "build": "Builds the plugin, by cleaning and compiling TypesScript into Javascript",
