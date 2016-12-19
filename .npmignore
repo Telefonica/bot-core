@@ -4,6 +4,10 @@ node_modules/
 coverage/
 test/
 typings/
+src/
+tsconfig.json
+tslint.json
+typings.json
 
 npm-debug.log
 .eslintrc
@@ -12,3 +16,6 @@ npm-debug.log
 .travis.yml
 
 CONTRIBUTING.md
+
+*.spec.js
+*.spec.ts

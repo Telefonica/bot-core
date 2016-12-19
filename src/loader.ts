@@ -33,8 +33,7 @@ export class PluginLoader {
     protected requireLibrary(libpath: string): BotBuilder.Library {
         let lib = require(libpath).default as BotBuilder.Library;
 
-        // XXX this validation could be improved checking that lib instanceof BotBuilder.Library
-        if (!lib.name) {
+        if (!(lib instanceof BotBuilder.Library)) {
             logger.warn(`Skip plugin at ${libpath}: not a valid Library`);
             return null;
         }
