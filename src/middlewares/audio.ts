@@ -101,8 +101,12 @@ export default function factory(): BotBuilder.IMiddlewareMap {
       }
 
       bingSpeechClient.synthesize(event.text)
-        .then(response => storage.upload(streamifier.createReadStream(response.wave)))
+        .then(response => {
+            logger.debug('Bing Speech synthesize succeeded');
+            return storage.upload(streamifier.createReadStream(response.wave));
+        })
         .then(url => {
+            logger.info({url: url}, 'Audio response uploaded');
             event.attachments = event.attachments || [];
             event.attachments.push({
                 contentType: 'audio/wave',
