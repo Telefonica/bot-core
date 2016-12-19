@@ -17,6 +17,7 @@
 
 import * as BotBuilder from 'botbuilder';
 import { Channel } from '../botbuilder-ext';
+import * as logger from 'logops';
 
 /**
  * Look for outgoing messages whose channel is DirectLine and carry some attachment whose contentType
@@ -34,11 +35,13 @@ export default {
                     // Pick the attachment with contentType 'application/vnd.microsoft.keyboard'
                     let choicesIndex = message.attachments
                         .findIndex(attachment => attachment.contentType === 'application/vnd.microsoft.keyboard');
+                    logger.debug('Found attachment of type Keyboard on index %d', choicesIndex);
                     if (choicesIndex !== -1) {
                         // Move the attachment containing the choices to the channelData
-                        let choices = message.attachments.splice(choicesIndex);
+                        let choices = message.attachments.splice(choicesIndex, 1);
                         message.sourceEvent = message.sourceEvent || {};
                         message.sourceEvent.choices = choices[0];
+                        logger.info('Keyboard moved from attachments to channelData');
                     }
                 }
             }
