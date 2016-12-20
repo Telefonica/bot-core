@@ -45,10 +45,14 @@
     "bingspeech-api-client": "^2.0.0",
     "botbuilder": "3.4.4",
     "express": "^4.14.0",
+    "express-domaining": "^2.0.1",
+    "express-tracking": "^1.0.1",
     "logops": "^1.0.6",
     "request": "^2.75.0",
     "streamifier": "^0.1.1",
-    "therror": "^2.1.0"
+    "therror": "^2.1.0",
+    "therror-connect": "^1.0.2",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
     "@types/chai": "^3.4.33",
@@ -59,6 +63,7 @@
     "@types/request": "0.0.31",
     "@types/sinon": "^1.16.30",
     "@types/sinon-chai": "^2.7.27",
+    "@types/uuid": "^2.0.29",
     "chai": "^3.5.0",
     "mocha": "^3.0.2",
     "nock": "^8.0.0",

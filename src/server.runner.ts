@@ -19,8 +19,12 @@ import * as express from 'express';
 import * as logger from 'logops';
 import * as BotBuilder from 'botbuilder';
 import * as http from 'http';
-import enableTerminate = require('server-terminate');
+import * as enableTerminate from 'server-terminate';
+const expressDomain = require('express-domaining');
+const expressTracking = require('express-tracking');
+const errorHandler = require('therror-connect');
 
+import { addStartTime } from './middlewares/response-time';
 import { Runner, ServerRunner } from './runner';
 
 /**
@@ -75,10 +79,43 @@ export class BotServerRunner extends ServerRunner {
 
         this.app = app;
         this.app.disable('x-powered-by');
-        this.app.post('/api/messages', this.connector.listen());
+        this.app.post('/api/messages', [
+          expressDomain(), // Add domain support
+          expressTracking(), // Add traking information
+          addTimeMW, // Add request start time 
+          this.connector.listen()
+        ]);
         this.app.get('/status', statusMW);
         this.app.use('*', defaultMW);
+        this.app.use([
+          domainErrorMW, // manage domain errors
+          errorHandler() // And add useful logging errors - responses
+        ]);
     }
+}
+
+/**
+ * Express middleware that adds the current time to the domain, 
+ * in order to get from the bot middleware "response-time" later 
+ * @see middlewares/request-time.ts
+ */
+export function addTimeMW(req: http.ClientRequest, res: http.ClientResponse, next: Function): void {
+  addStartTime();
+  next();
+}
+/**
+ * Express error handler that prints a domain thrown error as a fatal trace
+ * expressDomainig forwards the domain error to express, so we capture them here 
+ * and add a fatal trace (as a domain error is an unexpected one)
+ */
+function domainErrorMW(err: any | Error, req: express.Request, res: express.Response, next: Function) {
+  // domain thrown errors. The process will exit cleanly thaks to alfalfa when 
+  // the request ends and the client got it response, but we first log the fatal trace 
+  if (err.domainThrown) {
+    // To print AFTER the request error log
+    process.nextTick(() => logger.fatal(err));
+  }
+  next(err);
 }
 
 function statusMW(req: express.Request, res: express.Response) {

@@ -15,23 +15,21 @@
 * limitations under the License.
 */
 
-export * from './bot';
-export * from './runner'
-export * from './logger';
+import * as logger from 'logops';
+import Therror from 'therror';
 
-import * as BotBuilder from 'botbuilder';
-export { BotBuilder };
+export { logger };
 
-import * as BotBuilderExt from './botbuilder-ext';
-export { BotBuilderExt };
+// But while developing, it's very boring to see them always, so we omit them
+logger.formatters.dev.omit = ['trans', 'op', 'corr'];
 
-declare module 'botbuilder' {
-    // XXX: Remove this augmentation when Microsoft fixes the interface
-    interface IRecognizeContext {
-        locale: string;
-    }
-    // XXX: Remove this augmentation when Microsoft fixes the interface
-    interface IPromptResult<T> extends IDialogResult<T> {
-        score: number;
-    }
-}
+// Set the logger for Errors to be out one
+Therror.Loggable.logger = logger;
+
+// Print in the traces out tracking info
+// @see console.runner.ts#DomainedConsoleConnector
+// @see server.runner.ts 
+// @see https://github.com/Telefonica/node-express-tracking
+logger.setContextGetter(() => {
+    return process.domain && (<any>process.domain).tracking;
+});

@@ -15,6 +15,8 @@
 * limitations under the License.
 */
 
-export * from 'alfalfa';
+// alfalfa also exports its own logger as logger. It will collide with our own (@see logger.ts)
+// so drop it from the exported members
+export { Errors as RunnerErrors, Runner, ServerRunner, MongoRunner, HTTPAgentRunner, Startup } from 'alfalfa';
 export { BotConsoleRunner } from './console.runner';
 export { BotServerRunner } from './server.runner';
