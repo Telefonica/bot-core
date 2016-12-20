@@ -22,21 +22,21 @@ import * as logger from 'logops';
 import * as request from 'request';
 import Therror from 'therror';
 
-import { ObjectStorage } from '@telefonica/object-storage';
+import { ObjectStorageFactory } from '@telefonica/object-storage';
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
 const streamifier = require('streamifier');
 
 export default function factory(): BotBuilder.IMiddlewareMap {
-  if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.S3_ENDPOINT) {
-    logger.warn('Audio Middleware is disabled. MICROSOFT_BING_SPEECH_KEY and S3_ENDPOINT env vars needed');
+  if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
+    logger.warn('Audio Middleware is disabled. MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars needed');
     return {
       // To avoid botbuilder console.warn trace!! WTF
       botbuilder: (session: BotBuilder.Session, next: Function) => next()
     };
   }
 
-  const storage = new ObjectStorage();
+  const storage = ObjectStorageFactory.get('azure');
 
   const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
 
@@ -136,7 +136,7 @@ function downloadRemoteResource(url: string): Promise<Buffer> {
         request({
             url: url,
             method: 'HEAD',
-            timeout: 5000
+            timeout: 2000
         }, (err, headResult) => {
             let size = headResult && headResult.headers['content-length'];
 
@@ -148,7 +148,7 @@ function downloadRemoteResource(url: string): Promise<Buffer> {
             let data: any = [];
             size = 0;
 
-            let res = request({ url, timeout: 10000 });
+            let res = request({ url, timeout: 5000 });
             res.on('data', chunk => {
                 data.push(chunk);
                 size += data.length;
