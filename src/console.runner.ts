@@ -17,8 +17,11 @@
 
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
+import * as domain from 'domain';
+import * as uuid from 'uuid';
 
 import { Runner } from './runner';
+import { addStartTime } from './middlewares/response-time';
 
 /**
  * Settings to create a {@link ConsoleRunner} instance
@@ -49,7 +52,8 @@ export class BotConsoleRunner extends Runner<BotBuilder.ConsoleConnector> {
         this.bot = settings.bot;
 
         this.settings = settings;
-        this.connector = new BotBuilder.ConsoleConnector();
+        // Use our custom ConsoleConnector to add Domains to every user input
+        this.connector = new DomainedConsoleConnector();
 
         this.bot.connector('*', this.connector);
     }
@@ -64,4 +68,37 @@ export class BotConsoleRunner extends Runner<BotBuilder.ConsoleConnector> {
         // No need to tear down anything, BotBuilder.ConsoleConnector does not exposes anything also
         return Promise.resolve(this.connector);
     }
+}
+
+/**
+ * ConsoleConnector that adds the user input to a domain to add the tracking info
+ * That tracking info will be used to correlate traces and get bot response times 
+ */
+class DomainedConsoleConnector extends BotBuilder.ConsoleConnector {
+    public processMessage(line: string): this {
+        let d = domain.create();
+        d.enter();
+        d.on('error', (err: Error) => logger.fatal(err));
+        addTrackingInfo();
+        addStartTime();
+        d.run(() => super.processMessage(line));
+        // TODO: There is no way with the current BotBuilder architecture to know when 
+        // the message has been processed to exit the domain 
+        return this;
+    }
+}
+
+/**
+ * Adds the tracking info to the domain as the node-express-tracking does
+ * @see https://github.com/Telefonica/node-express-tracking/
+ */
+function addTrackingInfo() {
+  let trans = uuid();
+  Object.assign(process.domain, {
+    tracking: {
+      corr: trans,
+      trans,
+      op: undefined
+    }
+  });
 }

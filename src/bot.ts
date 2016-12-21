@@ -18,7 +18,17 @@
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 
-import { LanguageDetector, Admin, Logger, Normalizer, Audio, Slack, DirectLinePrompts, EventHub } from './middlewares';
+import {  LanguageDetector,
+          Admin,
+          Logger,
+          Normalizer,
+          Audio,
+          Slack,
+          DirectLinePrompts,
+          EventHub,
+          ResponseTime
+      } from './middlewares';
+
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
@@ -62,7 +72,8 @@ export class Bot extends BotBuilder.UniversalBot {
             LanguageDetector(supportedLanguages),
             Admin,
             EventHub(),
-            Slack()
+            Slack(),
+            ResponseTime()
         ];
         this.use(...middlewares);
 
