@@ -1,4 +1,5 @@
-## bot-core
+# bot-core
+[![Build Status](https://travis-ci.org/Telefonica/bot-core.svg?branch=master)](https://travis-ci.org/Telefonica/bot-core)
 
 The core. Provides a managed and controlled runtime to develop bots.
 
