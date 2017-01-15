@@ -185,7 +185,7 @@ export class Prompts extends BotBuilder.Prompts {
 
         args.promptType = BotBuilder.PromptType.confirm;
         args.prompt = prompt;
-        if (options.yesNoChoices) {
+        if (options && options.yesNoChoices) {
             let yesNoChoices = BotBuilder.EntityRecognizer.expandChoices(options.yesNoChoices);
             if (yesNoChoices.length !== 2) {
                 console.error('yesNoChoices must have length 2');
