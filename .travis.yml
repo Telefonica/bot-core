@@ -1,4 +1,12 @@
 language: node_js
+sudo: false
 node_js:
   - "6"
 script: "npm run test"
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/0fd9f523766cb491af1e
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always
