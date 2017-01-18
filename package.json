@@ -1,7 +1,7 @@
 {
   "name": "@telefonica/bot-core",
-  "version": "1.28.1",
-  "description": "Bot Core package to run bots",
+  "version": "1.29.0",
+  "description": "Bot Core module to develop bots based on Microsoft Bot Framework",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -34,7 +34,8 @@
   },
   "keywords": [
     "bot",
-    "fourth platform"
+    "bot framework",
+    "telefonica"
   ],
   "author": "TDAF <tdaf@tid.es>",
   "license": "Apache-2.0",
@@ -42,12 +43,12 @@
     "@slack/client": "^3.6.0",
     "@telefonica/object-storage": "^3.0.1",
     "alfalfa": "^2.2.0",
-    "bingspeech-api-client": "^2.0.0",
+    "bingspeech-api-client": "^2.1.1",
     "botbuilder": "3.4.4",
     "express": "^4.14.0",
     "express-domaining": "^2.0.1",
     "express-tracking": "^1.0.1",
-    "logops": "^1.0.6",
+    "logops": "^1.0.7",
     "request": "^2.75.0",
     "streamifier": "^0.1.1",
     "therror": "^2.1.0",

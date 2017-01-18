@@ -136,7 +136,7 @@ function downloadRemoteResource(url: string): Promise<Buffer> {
         request({
             url: url,
             method: 'HEAD',
-            timeout: 2000
+            timeout: 5000
         }, (err, headResult) => {
             let size = headResult && headResult.headers['content-length'];
 
@@ -159,7 +159,10 @@ function downloadRemoteResource(url: string): Promise<Buffer> {
                 }
             });
 
-            res.on('end', () => resolve(Buffer.concat(data)));
+            res.on('end', () => {
+                logger.debug(`Resource download finished (${size})`);
+                resolve(Buffer.concat(data));
+            });
             res.on('error', (err) => reject(err));
         });
     });
