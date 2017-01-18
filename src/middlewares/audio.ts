@@ -27,6 +27,9 @@ import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-clien
 
 const streamifier = require('streamifier');
 
+const DEFAULT_AUDIO_MESSAGE_EN = 'https://yotstaticstorage.blob.core.windows.net/staticaudio/error-stt-en.wav';
+const DEFAULT_AUDIO_MESSAGE_ES = 'https://yotstaticstorage.blob.core.windows.net/staticaudio/error-stt-es.wav';
+
 export default function factory(): BotBuilder.IMiddlewareMap {
   if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
     logger.warn('Audio Middleware is disabled. MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars needed');
@@ -41,6 +44,7 @@ export default function factory(): BotBuilder.IMiddlewareMap {
   const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
 
   const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
+
   return {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
       let hasAttachment = session.message.type === 'message' &&
@@ -73,19 +77,36 @@ export default function factory(): BotBuilder.IMiddlewareMap {
       downloadRemoteResource(contentUrl)
         .then(buffer => bingSpeechClient.recognize(buffer))
         .then(voiceResult => {
-            logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
+            logger.info({bingspeech: voiceResult}, 'Bing Speech recognize succeeded');
             voiceRecognitionResult = voiceResult;
             return evaluateVoiceResponse(voiceResult);
         })
         .then(valid => {
             if (valid) {
                 session.message.text = voiceRecognitionResult.header.lexical;
+            } else {
+                throw new Therror('Bing Speech response not valid');
             }
         })
         .then(() => next())
         .catch(err => {
-            logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
-            next(err);
+            logger.warn(err, 'Audio middleware: Bing Speech recognize failed');
+
+            // best effort to choose an error audio file that fits the user locale (we support English and Spanish for now)
+            let defaultErrorUrl = DEFAULT_AUDIO_MESSAGE_EN;
+
+            let locale = session.preferredLocale();
+            if (locale && locale.startsWith('es-')) {
+                defaultErrorUrl = DEFAULT_AUDIO_MESSAGE_ES;
+            }
+
+            let attachment = {
+                contentType: 'audio/wave',
+                contentUrl: defaultErrorUrl
+            };
+            let message = new BotBuilder.Message(session).text(' ').addAttachment(attachment);
+
+            session.send(message);
         });
     },
     send: (event: BotBuilder.IMessage, next: Function) => {
@@ -115,7 +136,20 @@ export default function factory(): BotBuilder.IMiddlewareMap {
         })
         .then(() => next())
         .catch(err => {
-            logger.warn(err, 'Audio middleware: voice synthesis failed');
+            logger.warn(err, 'Audio middleware: voice synthesize failed');
+
+            // XXX we don't have the locale here either, because we don't have access to the Session and event.textLocale is undefined
+            //     use english for now
+
+            let defaultErrorUrl = DEFAULT_AUDIO_MESSAGE_EN;
+
+            let attachment = {
+                contentType: 'audio/wave',
+                contentUrl: defaultErrorUrl
+            };
+
+            event.attachments = event.attachments || [];
+            event.attachments.push(attachment);
             next(err);
         });
     }
