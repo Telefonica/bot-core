@@ -23,6 +23,7 @@ import * as enableTerminate from 'server-terminate';
 const expressDomain = require('express-domaining');
 const expressTracking = require('express-tracking');
 const errorHandler = require('therror-connect');
+const health = require('express-ping');
 
 import { addStartTime } from './middlewares/response-time';
 import { Runner, ServerRunner } from './runner';
@@ -58,10 +59,7 @@ export class BotServerRunner extends ServerRunner {
         let app = express();
         let server = http.createServer(app);
 
-        super({
-            server: server,
-            port: settings.port
-        });
+        super({server, port: settings.port });
         this.name = 'BotServer';
 
         this.bot = settings.bot;
@@ -77,17 +75,19 @@ export class BotServerRunner extends ServerRunner {
 
         this.app = app;
         this.app.disable('x-powered-by');
+
         this.app.post('/api/messages', [
-          expressDomain(), // Add domain support
-          expressTracking(), // Add tracking information
-          addTimeMW, // Add request start time
-          this.connector.listen()
+            expressDomain(), // Add domain support
+            expressTracking(), // Add tracking information
+            addTimeMW, // Add request start time
+            this.connector.listen()
         ]);
-        this.app.get('/status', statusMW);
+
+        this.app.use(health.ping('/status'));
         this.app.use('*', defaultMW);
         this.app.use([
-          domainErrorMW, // manage domain errors
-          errorHandler() // add useful logging errors - responses
+            domainErrorMW, // manage domain errors
+            errorHandler() // add useful logging errors - responses
         ]);
     }
 }
@@ -98,8 +98,8 @@ export class BotServerRunner extends ServerRunner {
  * @see middlewares/request-time.ts
  */
 export function addTimeMW(req: http.ClientRequest, res: http.ClientResponse, next: Function): void {
-  addStartTime();
-  next();
+    addStartTime();
+    next();
 }
 
 /**
@@ -108,17 +108,13 @@ export function addTimeMW(req: http.ClientRequest, res: http.ClientResponse, nex
  * and add a fatal trace (as a domain error is an unexpected one)
  */
 function domainErrorMW(err: any | Error, req: express.Request, res: express.Response, next: Function) {
-  // domain thrown errors. The process will exit cleanly thanks to alfalfa when
-  // the request ends and the client got it response, but we first log the fatal trace
-  if (err.domainThrown) {
-    // To print AFTER the request error log
-    process.nextTick(() => logger.fatal(err));
-  }
-  next(err);
-}
-
-function statusMW(req: express.Request, res: express.Response) {
-    res.status(200).send('Alive ' + process.uptime()); // XXX use express-ping
+    // domain thrown errors. The process will exit cleanly thanks to alfalfa when
+    // the request ends and the client got it response, but we first log the fatal trace
+    if (err.domainThrown) {
+        // To print AFTER the request error log
+        process.nextTick(() => logger.fatal(err));
+    }
+    next(err);
 }
 
 function defaultMW(req: express.Request, res: express.Response) {
