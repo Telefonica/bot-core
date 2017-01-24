@@ -19,151 +19,154 @@ import * as fs from 'fs';
 
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
-import * as request from 'request';
+import * as needle from 'needle';
 import Therror from 'therror';
 
 import { ObjectStorageFactory } from '@telefonica/object-storage';
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
-const streamifier = require('streamifier');
+const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
 
 export default function factory(): BotBuilder.IMiddlewareMap {
-  if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
-    logger.warn('Audio Middleware is disabled. MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars needed');
-    return {
-      // To avoid botbuilder console.warn trace!! WTF
-      botbuilder: (session: BotBuilder.Session, next: Function) => next()
-    };
-  }
+    if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
+        logger.warn(`Audio Middleware is disabled. No MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars`);
+
+        return {
+            // To avoid botbuilder console.warn trace!! WTF
+            botbuilder: (session: BotBuilder.Session, next: Function) => next()
+        };
+    }
 
   const storage = ObjectStorageFactory.get('azure');
 
   const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
 
-  const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
   return {
-    botbuilder: (session: BotBuilder.Session, next: Function) => {
-      let hasAttachment = session.message.type === 'message' &&
-                          session.message &&
-                          session.message.attachments &&
-                          session.message.attachments.length > 0;
+      botbuilder: (session: BotBuilder.Session, next: Function) => {
+          let hasAttachment = session.message.type === 'message' &&
+                              session.message &&
+                              session.message.attachments &&
+                              session.message.attachments.length > 0;
 
-      if (!hasAttachment) {
-        return next();
-      }
+          if (!hasAttachment) {
+              return next();
+          }
 
-      let attachment = session.message.attachments[0]; // XXX support multiple attachments
+          let attachment = session.message.attachments[0]; // XXX support multiple attachments
 
-      let isAudio = attachment.contentType.startsWith('audio/');
-      if (!isAudio) {
-        return next();
-      }
+          let isAudio = attachment.contentType.startsWith('audio/');
+          if (!isAudio) {
+              return next();
+          }
 
-      let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
+          let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
 
-      if (!isValidAudioAttachment) {
-        logger.warn(`Audio format not supported ${attachment.contentType}`);
-        session.send('Sorry, I do not understand your audio message');
-        return next(new Therror(`Audio format not supported ${attachment.contentType}`));
-      }
+          if (!isValidAudioAttachment) {
+              logger.warn(`Audio format not supported ${attachment.contentType}`);
+              session.send('Sorry, I do not understand your audio message');
+              return next(new Therror(`Audio format not supported ${attachment.contentType}`));
+          }
 
-      let contentUrl = attachment.contentUrl;
-      let voiceRecognitionResult: VoiceRecognitionResponse;
+          let contentUrl = attachment.contentUrl;
+          let voiceRecognitionResult: VoiceRecognitionResponse;
 
-      downloadRemoteResource(contentUrl)
-        .then(buffer => bingSpeechClient.recognize(buffer))
-        .then(voiceResult => {
-            logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
-            voiceRecognitionResult = voiceResult;
-            return evaluateVoiceResponse(voiceResult);
-        })
-        .then(valid => {
-            if (valid) {
-                session.message.text = voiceRecognitionResult.header.lexical;
-            }
-        })
-        .then(() => next())
-        .catch(err => {
-            logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
-            next(err);
-        });
-    },
-    send: (event: BotBuilder.IMessage, next: Function) => {
-      let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === 'true';
+          remoteAttachmentStream(contentUrl)
+              .then(stream => bingSpeechClient.recognizeStream(stream))
+              .then(voiceResult => {
+                  logger.info({bingspeech: voiceResult}, 'Bing Speech transcoding succeeded');
+                  voiceRecognitionResult = voiceResult;
+                  return evaluateVoiceResponse(voiceResult);
+              })
+              .then(valid => {
+                  if (valid) {
+                      session.message.text = voiceRecognitionResult.header.lexical;
+                  }
+              })
+              .then(() => next())
+              .catch(err => {
+                  logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
+                  next(err);
+              });
+      },
+      send: (event: BotBuilder.IMessage, next: Function) => {
+          let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === 'true';
 
-      //
-      // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
-      //      it is not so easy because we don't have the Session here.
-      //
+          //
+          // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
+          //      it is not so easy because we don't have the Session here.
+          //
 
-      if (!audioOutputEnabled || !event.text) {
-        return next();
-      }
+          if (!audioOutputEnabled || !event.text) {
+              return next();
+          }
 
-      bingSpeechClient.synthesize(event.text)
-        .then(response => {
-            logger.debug('Bing Speech synthesize succeeded');
-            return storage.upload(streamifier.createReadStream(response.wave));
-        })
-        .then(url => {
-            logger.info({url: url}, 'Audio response uploaded');
-            event.attachments = event.attachments || [];
-            event.attachments.push({
-                contentType: 'audio/wave',
-                contentUrl: url
+          bingSpeechClient.synthesizeStream(event.text)
+            .then(stream => {
+                logger.debug('Bing Speech synthesize succeeded');
+                return storage.upload(stream);
+            })
+            .then(url => {
+                logger.info({url: url}, 'Audio response uploaded');
+                event.attachments = event.attachments || [];
+                event.attachments.push({
+                    contentType: 'audio/wave',
+                    contentUrl: url
+                });
+            })
+            .then(() => next())
+            .catch(err => {
+                logger.warn(err, 'Audio middleware: voice synthesis failed');
+                next(err);
             });
-        })
-        .then(() => next())
-        .catch(err => {
-            logger.warn(err, 'Audio middleware: voice synthesis failed');
-            next(err);
-        });
-    }
-  } as BotBuilder.IMiddlewareMap;
+        }
+    } as BotBuilder.IMiddlewareMap;
 }
 
 /**
- * TODO this won't scale. Avoid the need of loading a resource in memory.
- * XXX could be moved to a common 'utils'.
- *
  * @param {string} url - Remote resource location
- * @return {Promise<Buffer>} A Buffer with the remote resource contents
+ * @return {Promise<NodeJS.ReadWriteStream>} A Buffer with the remote resource contents
  */
-function downloadRemoteResource(url: string): Promise<Buffer> {
-    const MAX_SIZE = 10485760;
+function remoteAttachmentStream(url: string): Promise<NodeJS.ReadWriteStream> {
+    const MAX_SIZE = parseInt(process.env.MAX_SIZE_ATTACHMENT, 10) || 10485760;
 
-    return new Promise<Buffer>((resolve, reject) => {
-        request({
-            url: url,
-            method: 'HEAD',
-            timeout: 5000
-        }, (err, headResult) => {
+    let promise = Promise.resolve();
+
+    if (MAX_SIZE > 0) {
+        promise.then(() => validateAttachmentSize(url, MAX_SIZE));
+    }
+
+    return promise.then(() => {
+        let options = {
+            open_timeout: 4000
+        };
+
+        return needle.get(url, options);
+    });
+}
+/**
+ * @param {string} url - Remote resource location
+ * @param {number} maxSize - Max size of the remote resource
+ * @return {Promise<void>} A promise resolved when the validation finishes
+ */
+function validateAttachmentSize(url: string, maxSize: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        let options = {
+            open_timeout: 4000
+        };
+
+        needle.head(url, options, (err, headResult) => {
+            if (err) {
+                return reject(new Error(`Not able to valdate the content length of the attachment: ${err.message}`));
+            }
+
             let size = headResult && headResult.headers['content-length'];
 
-            if (parseInt(size, 10) > MAX_SIZE) {
+            if (parseInt(size, 10) > maxSize) {
                 logger.info(`Resource size exceeds limit (${size})`);
                 return reject(new Error(`Resource size exceeds limit (${size})`));
             }
 
-            let data: any = [];
-            size = 0;
-
-            let res = request({ url, timeout: 5000 });
-            res.on('data', chunk => {
-                data.push(chunk);
-                size += data.length;
-
-                if (size > MAX_SIZE) {
-                    logger.info(`Resource stream exceeded limit (${size})`);
-                    res.abort(); // Abort the response (close and cleanup the stream)
-                }
-            });
-
-            res.on('end', () => {
-                logger.debug(`Resource download finished (${size})`);
-                resolve(Buffer.concat(data));
-            });
-            res.on('error', (err) => reject(err));
+            resolve();
         });
     });
 }

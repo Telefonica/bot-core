@@ -4,17 +4,24 @@ import * as nock from 'nock';
 
 import * as BotBuilder from 'botbuilder';
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
+import { ObjectStorageFactory, IStorage } from '@telefonica/object-storage';
 
 import * as audio from './audio';
 
 // XXX disable logs to avoid stdout pollution
 
 // TODO reenable tests !
+
 describe.skip('Audio Middleware', () => {
     let bingSpeechClientStub: sinon.SinonStub;
+    let objectStorageFactoryStub: sinon.SinonStub;
 
     beforeEach(() => {
-        bingSpeechClientStub = sinon.stub(BingSpeechClient.prototype, 'recognize', () => fakeVoiceRecognition('This is a text'));
+        process.env.MICROSOFT_BING_SPEECH_KEY = 'fake';
+        process.env.AZURE_STORAGE_ACCOUNT = 'fake';
+        process.env.AZURE_STORAGE_ACCESS_KEY = 'fake';
+
+        bingSpeechClientStub = sinon.stub(BingSpeechClient.prototype, 'recognizeStream', () => fakeVoiceRecognition('This is a text'));
     });
 
     it('should replace the message text with the STT equivalent', done => {
@@ -38,6 +45,8 @@ describe.skip('Audio Middleware', () => {
     });
 
     it('should not download huge audio resources', done => {
+        process.env.MAX_SIZE_ATTACHMENT = 1024;
+
         nock('https://unexisting-audio-resource')
             .defaultReplyHeaders({
                 'Content-Length': (100 * 1024 * 1024).toString(10) // 100MB > size limit
