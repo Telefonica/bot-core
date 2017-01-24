@@ -29,8 +29,7 @@ const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'a
 
 export default function factory(): BotBuilder.IMiddlewareMap {
     if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
-        logger.warn(`Audio Middleware is disabled.
-                     MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars needed`);
+        logger.warn(`Audio Middleware is disabled. No MICROSOFT_BING_SPEECH_KEY, AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_ACCESS_KEY env vars`);
 
         return {
             // To avoid botbuilder console.warn trace!! WTF
@@ -132,7 +131,7 @@ function remoteAttachmentStream(url: string): Promise<NodeJS.ReadWriteStream> {
 
     let promise = Promise.resolve();
 
-    if (!MAX_SIZE) {
+    if (MAX_SIZE > 0) {
         promise.then(() => validateAttachmentSize(url, MAX_SIZE));
     }
 
@@ -156,6 +155,10 @@ function validateAttachmentSize(url: string, maxSize: number): Promise<void> {
         };
 
         needle.head(url, options, (err, headResult) => {
+            if (err) {
+                return reject(new Error(`Not able to valdate the content length of the attachment: ${err.message}`));
+            }
+
             let size = headResult && headResult.headers['content-length'];
 
             if (parseInt(size, 10) > maxSize) {
