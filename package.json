@@ -1,6 +1,6 @@
 {
   "name": "@telefonica/bot-core",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "description": "Bot Core module to develop bots based on Microsoft Bot Framework",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
