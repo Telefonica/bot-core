@@ -32,13 +32,18 @@ export default function factory(): BotBuilder.IMiddlewareMap {
 
   return {
     /**
-     * Notify Slack about not recognized utterances
+     * Notify Slack (fire and forget) about unrecognized utterances
      */
     send: (event: BotBuilder.IEvent, next: Function) => {
       if (event.sourceEvent.intent === 'None') {
-        // Fire and forget slack notification.
+        let debugInfo = {
+          id: event.address.user.id,
+          name: event.address.user.name,
+          conversation: event.address.conversation.id
+        };
+
         webhook.send({
-          text: `Not able to classify: ${event.sourceEvent.text}`,
+          text: `Not able to classify: ${event.sourceEvent.text} ${JSON.stringify(debugInfo)}`,
           channel: process.env.SLACK_CHANNEL || 'bot-classify',
           username: process.env.BOT_NAME || 'bot'
         });
