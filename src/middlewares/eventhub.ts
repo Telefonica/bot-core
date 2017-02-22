@@ -107,9 +107,11 @@ function sendEventHub(payload: any) {
 sendEventHub('{\"Temperature\": \"37.0\"}');
 */
 let Eventhub = EventHub.Client;
-let client = Eventhub.fromConnectionString('Endpoint=sb://yot-dev-eventhub.servicebus.windows.net/;'+
-                                            'SharedAccessKeyName=RootManageSharedAccessKey;'+
-                                            'SharedAccessKey=FmywnwLXKQr5YsFlsGRkXiynBeh36sZlIFjKKLFvong=', 'yot-dev-eu-eventhub');
+let namespace = process.env.EVENTHUB_NAMESPACE;
+let accessKeyName = process.env.EVENTHUB_KEYNAME;
+let accessKey = process.env.EVENTHUB_KEY;
+let hubname = process.env.EVENTHUB_HUBNAME;
+let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`, hubname);
 function sendEventHub(payload: any): void {
     client.open()
         .then(() => {
@@ -118,7 +120,6 @@ function sendEventHub(payload: any): void {
         .then((sender) => {
             sender.on('errorReceived', (err) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
             sender.send(payload);
-            console.log('ya envio');
         });
 }
 
