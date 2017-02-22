@@ -19,11 +19,12 @@ import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 import * as https from 'https';
 import * as crypto from 'crypto';
-
+import * as EventHub from 'azure-event-hubs';
 /**
  * Sends the incoming message received by the bot to Azure Event Hub
  */
-export default function factory(): BotBuilder.IMiddlewareMap {
+/*export default function factory(): BotBuilder.IMiddlewareMap {
+    console.log('entro');
   if (!process.env.EVENTHUB_NAMESPACE) {
     logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE env var needed');
     return {
@@ -34,24 +35,29 @@ export default function factory(): BotBuilder.IMiddlewareMap {
 
   return {
     botbuilder: (session: BotBuilder.Session, next: Function) => {
-      sendEventHub(session.message); // best-effort, no callback
+      sendEventHub('hola'); // best-effort, no callback
       next();
     }
   } as BotBuilder.IMiddlewareMap;
-}
-
+}*/
+/*
 function sendEventHub(payload: any) {
     // Event Hubs parameters
-    let namespace = process.env.EVENTHUB_NAMESPACE; // ex. 'yothub-ns'
-    let hubname = process.env.EVENTHUB_HUBNAME; // ex. 'yot'
-    let publisher = process.env.EVENTHUNB_PUBLISHER;
+    //let namespace = process.env.EVENTHUB_NAMESPACE; // ex. 'yothub-ns' yot-dev-eventhub
+    let namespace = 'yot-dev-eventhub';
+    //let hubname = process.env.EVENTHUB_HUBNAME; // ex. 'yot' yot-dev-eu-eventhub
+    let hubname = 'yot-dev-eu-eventhub';
+    //let publisher = process.env.EVENTHUB_PUBLISHER; //prueba3
+    let publisher = 'prueba3';
 
     // Shared access key (from Event Hub configuration)
-    let eventHubKeyName = process.env.EVENTHUB_KEYNAME; // ex. 'send'
-    let eventHubKey = process.env.EVENTHUB_KEY; // ex. 'key';
-
+    //let eventHubKeyName = process.env.EVENTHUB_KEYNAME; // ex. 'send'
+    //let eventHubKey = process.env.EVENTHUB_KEY; // ex. 'key'; RwtKlxIXAjk7ujsMBO7SAiPgpVaVwMSBEkcbWVkvGrA=
+    let eventHubKeyName='RootManageSharedAccessKey';
+    let eventHubKey='FmywnwLXKQr5YsFlsGRkXiynBeh36sZlIFjKKLFvong=';
     let eventHubPulbisherUri = `https://${namespace}.servicebus.windows.net/${hubname}/publishers/${publisher}/messages`;
-
+    console.log(eventHubPulbisherUri);
+    console.log('Creando token')
     // See http://msdn.microsoft.com/library/azure/dn170477.aspx
     function createTokenSAS(uri: string, keyName: string, key: string) {
         let oneDayExpiry = Math.floor(new Date().getTime() / 1000 + 3600 * 24);
@@ -63,7 +69,7 @@ function sendEventHub(payload: any) {
         return token;
     }
     let sas = createTokenSAS(eventHubPulbisherUri, eventHubKeyName, eventHubKey);
-
+    console.log(sas);
     // Send the request to the Event Hub
     let options = {
         hostname: namespace + '.servicebus.windows.net',
@@ -76,17 +82,17 @@ function sendEventHub(payload: any) {
             'Content-Type': 'application/atom+xml;type=entry;charset=utf-8'
         }
     };
-
+    console.log('haciendo petición')
     let req = https.request(options, (res: any) => {
         logger.info('Azure Event Hub statusCode', res.statusCode);
-        logger.debug('Azure Event Hub headers', res.headers);
+        logger.info('Azure Event Hub headers', res.headers);
         let mydata: any = [];
         res.on('data', (data: any) => {
             mydata.push(data);
         });
 
         res.on('end', () => {
-            logger.debug('Azure Event Hub response', Buffer.concat(mydata));
+            logger.info('Azure Event Hub response', Buffer.concat(mydata));
         });
     });
 
@@ -97,3 +103,23 @@ function sendEventHub(payload: any) {
     req.write(payload);
     req.end();
 }
+
+sendEventHub('{\"Temperature\": \"37.0\"}');
+*/
+let Eventhub = EventHub.Client;
+let client = Eventhub.fromConnectionString('Endpoint=sb://yot-dev-eventhub.servicebus.windows.net/;'+
+                                            'SharedAccessKeyName=RootManageSharedAccessKey;'+
+                                            'SharedAccessKey=FmywnwLXKQr5YsFlsGRkXiynBeh36sZlIFjKKLFvong=', 'yot-dev-eu-eventhub');
+function sendEventHub(payload: any): void {
+    client.open()
+        .then(() => {
+            return client.createSender('0'); //Partition should be between 0 and 1
+        })
+        .then((sender) => {
+            sender.on('errorReceived', (err) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
+            sender.send(payload);
+            console.log('ya envio');
+        });
+}
+
+sendEventHub({ msg: 'Here is some text sent to partition 0.'});

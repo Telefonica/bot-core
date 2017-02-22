@@ -43,6 +43,7 @@
     "@slack/client": "^3.6.0",
     "@telefonica/object-storage": "^3.0.1",
     "alfalfa": "^2.2.0",
+    "azure-event-hubs": "0.0.6",
     "bingspeech-api-client": "^2.2.0",
     "botbuilder": "3.4.4",
     "express": "^4.14.0",
@@ -56,6 +57,7 @@
     "uuid": "^3.0.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.0.37",
     "@types/chai": "^3.4.33",
     "@types/express": "^4.0.0",
     "@types/mocha": "^2.2.32",

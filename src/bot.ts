@@ -25,7 +25,7 @@ import {  LanguageDetector,
           Audio,
           Slack,
           DirectLinePrompts,
-          EventHub,
+          //EventHub,
           ResponseTime
       } from './middlewares';
 
@@ -71,7 +71,7 @@ export class Bot extends BotBuilder.UniversalBot {
             Normalizer,
             LanguageDetector(supportedLanguages),
             Admin,
-            EventHub(),
+            //EventHub(),
             Slack(),
             ResponseTime()
         ];
