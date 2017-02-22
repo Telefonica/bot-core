@@ -19,7 +19,6 @@ import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 import * as EventHub from 'azure-event-hubs';
 
-let Eventhub = EventHub.Client;
 let namespace = process.env.EVENTHUB_NAMESPACE;
 let accessKeyName = process.env.EVENTHUB_KEYNAME;
 let accessKey = process.env.EVENTHUB_KEY;
@@ -43,6 +42,7 @@ export default function factory(): BotBuilder.IMiddlewareMap {
 }
 
 function sendEventHub(payload: any): void {
+    let Eventhub = EventHub.Client;
     let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`, hubname);
     client.open()
         .then(() => {
