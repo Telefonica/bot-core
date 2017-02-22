@@ -24,7 +24,7 @@ let accessKeyName = process.env.EVENTHUB_KEYNAME;
 let accessKey = process.env.EVENTHUB_KEY;
 let hubname = process.env.EVENTHUB_HUBNAME;
 
-let msg = process.argv[1];
+let msg = process.argv[2];
 
 export default function factory(): BotBuilder.IMiddlewareMap {
     if(!process.env.EVENTHUB_NAMESPACE) {
