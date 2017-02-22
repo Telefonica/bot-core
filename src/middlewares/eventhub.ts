@@ -24,8 +24,26 @@ let namespace = process.env.EVENTHUB_NAMESPACE;
 let accessKeyName = process.env.EVENTHUB_KEYNAME;
 let accessKey = process.env.EVENTHUB_KEY;
 let hubname = process.env.EVENTHUB_HUBNAME;
-let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`, hubname);
+
+let msg = process.argv[1];
+
+export default function factory(): BotBuilder.IMiddlewareMap {
+    if(!process.env.EVENTHUB_NAMESPACE) {
+        logger.warn('Eventhub Middleware is disable. EVENTHUB_NAMESPACE env var needed');
+        return {
+            botbuilder: (session: BotBuilder.Session, next: Function) => next()
+        }
+    }
+    return {
+        botbuilder: (session: BotBuilder.Session, next: Function) => {
+            sendEventHub(msg);
+            next();
+        }
+    } as BotBuilder.IMiddlewareMap;
+}
+
 function sendEventHub(payload: any): void {
+    let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`, hubname);
     client.open()
         .then(() => {
             return client.createSender('0'); //Partition should be between 0 and 1
@@ -35,5 +53,3 @@ function sendEventHub(payload: any): void {
             sender.send(payload);
         });
 }
-
-sendEventHub({ msg: 'Here is some text sent to partition 0.'});
