@@ -19,32 +19,38 @@ import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
 import * as EventHub from 'azure-event-hubs';
 
-let namespace = process.env.EVENTHUB_NAMESPACE;
-let accessKeyName = process.env.EVENTHUB_KEYNAME;
-let accessKey = process.env.EVENTHUB_KEY;
-let hubname = process.env.EVENTHUB_HUBNAME;
+const namespace = process.env.EVENTHUB_NAMESPACE;
+const accessKeyName = process.env.EVENTHUB_KEYNAME;
+const accessKey = process.env.EVENTHUB_KEY;
+const hubname = process.env.EVENTHUB_HUBNAME;
 
 export default function factory(): BotBuilder.IMiddlewareMap {
     if (!process.env.EVENTHUB_NAMESPACE) {
-        logger.warn('Eventhub Middleware is disable. EVENTHUB_NAMESPACE env var needed');
+        logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE env var needed');
         return {
             botbuilder: (session: BotBuilder.Session, next: Function) => next()
         };
     }
 
-    let Eventhub = EventHub.Client;
-    let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;
-                                                SharedAccessKeyName=${accessKeyName};
-                                                SharedAccessKey=${accessKey}`, hubname);
+    let connectionString = `Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`;
+    let client = EventHub.Client.fromConnectionString(connectionString, hubname);
+
+    // XXX partition shouldn't be needed
+    let partition = '0';
+    let sender = client.open().then(() => client.createSender(partition));
+    sender.on('errorReceived', (err: any) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
+
+    function sendEventHub(payload: any): void {
+        // XXX we should verify that the sender is open and ready to send messages at this point 
+        sender.send(payload);
+    }
+
     return {
         botbuilder: (session: BotBuilder.Session, next: Function) => {
-            let sender = client.open().then(() => { return client.createSender('0'); }); //Partition should be between 0 and 1
-            sendEventHub(sender, session.message);
+            sendEventHub(session.message);
             next();
         }
     } as BotBuilder.IMiddlewareMap;
 }
 
-function sendEventHub(sender: any, payload: any): void {
-    sender.send(payload);
-}
+
