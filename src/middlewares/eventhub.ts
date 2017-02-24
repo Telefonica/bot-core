@@ -36,11 +36,9 @@ export default function factory(): BotBuilder.IMiddlewareMap {
     let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;
                                                 SharedAccessKeyName=${accessKeyName};
                                                 SharedAccessKey=${accessKey}`, hubname);
-    //let sender = client.open().then(() => { return client.createSender('0'); }); //Partition should be between 0 and 1
-    let sender = client.open().bind(client.createSender.bind(client));
     return {
         botbuilder: (session: BotBuilder.Session, next: Function) => {
-            let msg = process.argv[2];
+            let sender = client.open().then(() => { return client.createSender('0'); }); //Partition should be between 0 and 1
             sendEventHub(sender, session.message);
             next();
         }
@@ -48,6 +46,5 @@ export default function factory(): BotBuilder.IMiddlewareMap {
 }
 
 function sendEventHub(sender: any, payload: any): void {
-    sender.on('errorReceived', (err: any) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
     sender.send(payload);
 }
