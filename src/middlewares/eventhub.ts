@@ -24,8 +24,6 @@ let accessKeyName = process.env.EVENTHUB_KEYNAME;
 let accessKey = process.env.EVENTHUB_KEY;
 let hubname = process.env.EVENTHUB_HUBNAME;
 
-let msg = process.argv[2];
-
 export default function factory(): BotBuilder.IMiddlewareMap {
     if (!process.env.EVENTHUB_NAMESPACE) {
         logger.warn('Eventhub Middleware is disable. EVENTHUB_NAMESPACE env var needed');
@@ -33,25 +31,23 @@ export default function factory(): BotBuilder.IMiddlewareMap {
             botbuilder: (session: BotBuilder.Session, next: Function) => next()
         };
     }
+
+    let Eventhub = EventHub.Client;
+    let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;
+                                                SharedAccessKeyName=${accessKeyName};
+                                                SharedAccessKey=${accessKey}`, hubname);
+    //let sender = client.open().then(() => { return client.createSender('0'); }); //Partition should be between 0 and 1
+    let sender = client.open().bind(client.createSender.bind(client));
     return {
         botbuilder: (session: BotBuilder.Session, next: Function) => {
-            sendEventHub(msg);
+            let msg = process.argv[2];
+            sendEventHub(sender, session.message);
             next();
         }
     } as BotBuilder.IMiddlewareMap;
 }
 
-function sendEventHub(payload: any): void {
-    let Eventhub = EventHub.Client;
-    let client = Eventhub.fromConnectionString(`Endpoint=sb://${namespace}.servicebus.windows.net/;
-                                                SharedAccessKeyName=${accessKeyName};
-                                                SharedAccessKey=${accessKey}`, hubname);
-    client.open()
-        .then(() => {
-            return client.createSender('0'); //Partition should be between 0 and 1
-        })
-        .then((sender) => {
-            sender.on('errorReceived', (err) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
-            sender.send(payload);
-        });
+function sendEventHub(sender: any, payload: any): void {
+    sender.on('errorReceived', (err: any) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
+    sender.send(payload);
 }
