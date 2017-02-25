@@ -20,30 +20,33 @@ import * as logger from 'logops';
 import * as EventHub from 'azure-event-hubs';
 
 const namespace = process.env.EVENTHUB_NAMESPACE;
+const hubname = process.env.EVENTHUB_HUBNAME;
 const accessKeyName = process.env.EVENTHUB_KEYNAME;
 const accessKey = process.env.EVENTHUB_KEY;
-const hubname = process.env.EVENTHUB_HUBNAME;
 
 export default function factory(): BotBuilder.IMiddlewareMap {
-    if (!process.env.EVENTHUB_NAMESPACE) {
-        logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE env var needed');
+    if (!process.env.EVENTHUB_NAMESPACE || !process.env.EVENTHUB_HUBNAME) {
+        logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE, EVENTHUB_HUBNAME env vars needed');
         return {
             botbuilder: (session: BotBuilder.Session, next: Function) => next()
         };
     }
 
-    let connectionString = `Endpoint=sb://${namespace}.servicebus.windows.net/;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`;
+    let connectionString = `Endpoint=sb://${namespace}.servicebus.windows.net/` +
+                           `;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`;
+
     let client = EventHub.Client.fromConnectionString(connectionString, hubname);
 
-    // XXX partition shouldn't be needed
-    let partition = '0';
-    let sender = client.open().then(() => client.createSender(partition));
-    sender.on('errorReceived', (err: any) => { logger.error(err, 'Error sending request to Azure Event Hub'); });
-
-    function sendEventHub(payload: any): void {
-        // XXX we should verify that the sender is open and ready to send messages at this point 
-        sender.send(payload);
-    }
+    let eventHubSender: EventHub.Sender;
+    client.open()
+          .then(() => client.createSender())
+          .then((sender) => {
+              eventHubSender = sender;
+              logger.debug('Azure Event Hub sender initialized');
+              sender.on('errorReceived', (err: any) => {
+                  logger.error(err, 'Error sending request to Azure Event Hub');
+              });
+          });
 
     return {
         botbuilder: (session: BotBuilder.Session, next: Function) => {
@@ -51,6 +54,14 @@ export default function factory(): BotBuilder.IMiddlewareMap {
             next();
         }
     } as BotBuilder.IMiddlewareMap;
+
+    function sendEventHub(payload: any): void {
+        if (eventHubSender) {
+            eventHubSender.send(payload);
+        } else {
+            logger.warn('Azure Event Hub sender still not initialized');
+        }
+    }
 }
 
 

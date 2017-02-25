@@ -63,20 +63,20 @@
     "@types/mocha": "^2.2.32",
     "@types/nock": "^8.0.33",
     "@types/node": "^6.0.40",
-    "@types/request": "0.0.31",
+    "@types/request": "0.0.40",
     "@types/sinon": "^1.16.30",
     "@types/sinon-chai": "^2.7.27",
     "@types/uuid": "^2.0.29",
     "chai": "^3.5.0",
     "mocha": "^3.0.2",
-    "nock": "^8.0.0",
+    "nock": "^9.0.7",
     "nodemon": "^1.10.2",
     "npm-scripts-info": "^0.3.6",
     "nsp": "^2.6.1",
-    "shx": "^0.1.4",
+    "shx": "^0.2.2",
     "sinon": "^1.17.6",
     "sinon-chai": "^2.8.0",
-    "tslint": "^3.15.1",
-    "typescript": "2.0.10"
+    "tslint": "^4.4.2",
+    "typescript": "^2.2.1"
   }
 }
