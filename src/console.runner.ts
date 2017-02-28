@@ -72,7 +72,7 @@ export class BotConsoleRunner extends Runner<BotBuilder.ConsoleConnector> {
 
 /**
  * ConsoleConnector that adds the user input to a domain to add the tracking info
- * That tracking info will be used to correlate traces and get bot response times 
+ * That tracking info will be used to correlate traces and get bot response times
  */
 class DomainedConsoleConnector extends BotBuilder.ConsoleConnector {
     public processMessage(line: string): this {
@@ -82,8 +82,8 @@ class DomainedConsoleConnector extends BotBuilder.ConsoleConnector {
         addTrackingInfo();
         addStartTime();
         d.run(() => super.processMessage(line));
-        // TODO: There is no way with the current BotBuilder architecture to know when 
-        // the message has been processed to exit the domain 
+        // TODO: There is no way with the current BotBuilder architecture to know when
+        // the message has been processed to exit the domain
         return this;
     }
 }

@@ -35,9 +35,12 @@ export default function factory(): BotBuilder.IMiddlewareMap {
     let connectionString = `Endpoint=sb://${namespace}.servicebus.windows.net/` +
                            `;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`;
     let client = EventHub.Client.fromConnectionString(connectionString, hubname);
+
     let eventHubSender: EventHub.Sender;
     client.open()
-          .then(() => {return client.createSender();})
+          .then(() => {
+              return client.createSender();
+          })
           .then((sender) => {
               eventHubSender = sender;
               logger.debug('Azure Event Hub sender initialized');
@@ -47,12 +50,16 @@ export default function factory(): BotBuilder.IMiddlewareMap {
               return eventHubSender;
           })
           .catch((err) => {
-              logger.error('ERROR: ',err);
-            }
-        );
+              logger.error('ERROR: ', err);
+          });
+
     return {
         botbuilder: (session: BotBuilder.Session, next: Function) => {
             sendEventHub(session.message);
+            next();
+        },
+        send: (event: BotBuilder.IEvent, next: Function) => {
+            sendEventHub(event);
             next();
         }
     } as BotBuilder.IMiddlewareMap;
@@ -60,7 +67,6 @@ export default function factory(): BotBuilder.IMiddlewareMap {
     function sendEventHub(payload: any): void {
         if (eventHubSender) {
             eventHubSender.send(payload);
-            logger.debug('Sent message');
         } else {
             logger.warn('Azure Event Hub sender still not initialized');
         }

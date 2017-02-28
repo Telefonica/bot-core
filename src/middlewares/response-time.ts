@@ -22,16 +22,16 @@ import * as http from 'http';
 export default function factory(): BotBuilder.IMiddlewareMap {
   return {
     /**
-     * Prints a trace when the bot replies to track the accumulated time 
-     * it last to reply to the user. 
-     * 
+     * Prints a trace when the bot replies to track the accumulated time
+     * it last to reply to the user.
+     *
      * You can use that as a metric
-     * 
+     *
      * ```js
-     * { 
-     *   bot_response_time: { 
+     * {
+     *   bot_response_time: {
      *     time: 890 # milliseconds elapsed from the initial user request,
-     *     firstReply: true # true when is the first reply of a set of replies      
+     *     firstReply: true # true when is the first reply of a set of replies
      *   }
      *   msg: 'Bot response time',
      *   lvl: 'INFO'

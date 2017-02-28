@@ -28,7 +28,7 @@ Therror.Loggable.logger = logger;
 
 // Print in the traces out tracking info
 // @see console.runner.ts#DomainedConsoleConnector
-// @see server.runner.ts 
+// @see server.runner.ts
 // @see https://github.com/Telefonica/node-express-tracking
 logger.setContextGetter(() => {
     return process.domain && (<any>process.domain).tracking;
