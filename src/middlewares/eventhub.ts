@@ -17,83 +17,60 @@
 
 import * as BotBuilder from 'botbuilder';
 import * as logger from 'logops';
-import * as https from 'https';
-import * as crypto from 'crypto';
+import * as EventHub from 'azure-event-hubs';
 
-/**
- * Sends the incoming message received by the bot to Azure Event Hub
- */
+const namespace = process.env.EVENTHUB_NAMESPACE;
+const hubname = process.env.EVENTHUB_HUBNAME;
+const accessKeyName = process.env.EVENTHUB_KEYNAME;
+const accessKey = process.env.EVENTHUB_KEY;
+
 export default function factory(): BotBuilder.IMiddlewareMap {
-  if (!process.env.EVENTHUB_NAMESPACE) {
-    logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE env var needed');
+    if (!process.env.EVENTHUB_NAMESPACE || !process.env.EVENTHUB_HUBNAME) {
+        logger.warn('Eventhub Middleware is disabled. EVENTHUB_NAMESPACE, EVENTHUB_HUBNAME env vars needed');
+        return {
+            botbuilder: (session: BotBuilder.Session, next: Function) => next()
+        };
+    }
+
+    let connectionString = `Endpoint=sb://${namespace}.servicebus.windows.net/` +
+                           `;SharedAccessKeyName=${accessKeyName};SharedAccessKey=${accessKey}`;
+    let client = EventHub.Client.fromConnectionString(connectionString, hubname);
+
+    let eventHubSender: EventHub.Sender;
+    client.open()
+          .then(() => {
+              return client.createSender();
+          })
+          .then((sender) => {
+              eventHubSender = sender;
+              logger.debug('Azure Event Hub sender initialized');
+              sender.on('errorReceived', (err: any) => {
+                  logger.error(err, 'Error sending request to Azure Event Hub');
+              });
+              return eventHubSender;
+          })
+          .catch((err) => {
+              logger.error('ERROR: ', err);
+          });
+
     return {
-      // To avoid botbuilder console.warn trace!! WTF
-      botbuilder: (session: BotBuilder.Session, next: Function) => next()
-    };
-  }
-
-  return {
-    botbuilder: (session: BotBuilder.Session, next: Function) => {
-      sendEventHub(session.message); // best-effort, no callback
-      next();
-    }
-  } as BotBuilder.IMiddlewareMap;
-}
-
-function sendEventHub(payload: any) {
-    // Event Hubs parameters
-    let namespace = process.env.EVENTHUB_NAMESPACE; // ex. 'yothub-ns'
-    let hubname = process.env.EVENTHUB_HUBNAME; // ex. 'yot'
-    let publisher = process.env.EVENTHUNB_PUBLISHER;
-
-    // Shared access key (from Event Hub configuration)
-    let eventHubKeyName = process.env.EVENTHUB_KEYNAME; // ex. 'send'
-    let eventHubKey = process.env.EVENTHUB_KEY; // ex. 'key';
-
-    let eventHubPulbisherUri = `https://${namespace}.servicebus.windows.net/${hubname}/publishers/${publisher}/messages`;
-
-    // See http://msdn.microsoft.com/library/azure/dn170477.aspx
-    function createTokenSAS(uri: string, keyName: string, key: string) {
-        let oneDayExpiry = Math.floor(new Date().getTime() / 1000 + 3600 * 24);
-        let string_to_sign = encodeURIComponent(uri) + '\n' + oneDayExpiry;
-        let hmac = crypto.createHmac('sha256', key).update(string_to_sign);
-        let signature = hmac.digest('base64');
-        let token = 'SharedAccessSignature sr=' + encodeURIComponent(uri) +
-                    '&sig=' + encodeURIComponent(signature) + '&se=' + oneDayExpiry + '&skn=' + keyName;
-        return token;
-    }
-    let sas = createTokenSAS(eventHubPulbisherUri, eventHubKeyName, eventHubKey);
-
-    // Send the request to the Event Hub
-    let options = {
-        hostname: namespace + '.servicebus.windows.net',
-        port: 443,
-        path: '/' + hubname + '/publishers/' + publisher + '/messages',
-        method: 'POST',
-        headers: {
-            'Authorization': sas,
-            'Content-Length': payload.length,
-            'Content-Type': 'application/atom+xml;type=entry;charset=utf-8'
+        botbuilder: (session: BotBuilder.Session, next: Function) => {
+            sendEventHub(session.message);
+            next();
+        },
+        send: (event: BotBuilder.IEvent, next: Function) => {
+            sendEventHub(event);
+            next();
         }
-    };
+    } as BotBuilder.IMiddlewareMap;
 
-    let req = https.request(options, (res: any) => {
-        logger.info('Azure Event Hub statusCode', res.statusCode);
-        logger.debug('Azure Event Hub headers', res.headers);
-        let mydata: any = [];
-        res.on('data', (data: any) => {
-            mydata.push(data);
-        });
-
-        res.on('end', () => {
-            logger.debug('Azure Event Hub response', Buffer.concat(mydata));
-        });
-    });
-
-    req.on('error', (err: any) => {
-        logger.error(err, 'Error sending request to Azure Event Hub');
-    });
-
-    req.write(payload);
-    req.end();
+    function sendEventHub(payload: any): void {
+        if (eventHubSender) {
+            eventHubSender.send(payload);
+        } else {
+            logger.warn('Azure Event Hub sender still not initialized');
+        }
+    }
 }
+
+
