@@ -26,7 +26,6 @@ import { ObjectStorageFactory } from '@telefonica/object-storage';
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
 const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
-const ENABLE_AUDIO_OUTPUT = process.env.ENABLE_AUDIO_OUTPUT === 'true';
 
 export default function factory(): BotBuilder.IMiddlewareMap {
     if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
@@ -39,8 +38,9 @@ export default function factory(): BotBuilder.IMiddlewareMap {
     }
 
   const storage = ObjectStorageFactory.get('azure');
-
   const bingSpeechClient = new BingSpeechClient(process.env.MICROSOFT_BING_SPEECH_KEY);
+
+  const ENABLE_AUDIO_OUTPUT = process.env.ENABLE_AUDIO_OUTPUT === 'true';
 
   return {
       botbuilder: (session: BotBuilder.Session, next: Function) => {
@@ -75,6 +75,8 @@ export default function factory(): BotBuilder.IMiddlewareMap {
               } else {
                   logger.warn('Attribute session.options.onSend not found. You might be using a wrong botbuilder version');
               }
+          } else {
+              logger.
           }
 
           let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
