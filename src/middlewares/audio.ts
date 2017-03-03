@@ -26,6 +26,7 @@ import { ObjectStorageFactory } from '@telefonica/object-storage';
 import { BingSpeechClient, VoiceRecognitionResponse } from 'bingspeech-api-client';
 
 const SUPPORTED_CONTENT_TYPES = ['audio/vnd.wave', 'audio/wav', 'audio/wave', 'audio/x-wav'];
+const ENABLE_AUDIO_OUTPUT = process.env.ENABLE_AUDIO_OUTPUT === 'true';
 
 export default function factory(): BotBuilder.IMiddlewareMap {
     if (!process.env.MICROSOFT_BING_SPEECH_KEY || !process.env.AZURE_STORAGE_ACCOUNT || !process.env.AZURE_STORAGE_ACCESS_KEY) {
@@ -59,6 +60,23 @@ export default function factory(): BotBuilder.IMiddlewareMap {
               return next();
           }
 
+          if (ENABLE_AUDIO_OUTPUT) {
+              // XXX Hook onSend to be able to access the session (see https://github.com/Microsoft/BotBuilder/issues/2030)
+              //     This is tricky because session.options.onSend is not in the typings, MS could break this anytime.
+              let sessionOptions = (<any>session).options || {};
+              let _onSend = sessionOptions.onSend;
+              if (_onSend) {
+                  sessionOptions.onSend = (messages: BotBuilder.IMessage[], done: Function) => {
+                      let promises = messages.map(message => attachAudio(message));
+                      Promise.all(promises)
+                            .then(() => _onSend(messages, done))
+                            .catch(() => _onSend(messages, done));
+                  };
+              } else {
+                  logger.warn('Attribute session.options.onSend not found. You might be using a wrong botbuilder version');
+              }
+          }
+
           let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
 
           if (!isValidAudioAttachment) {
@@ -87,39 +105,37 @@ export default function factory(): BotBuilder.IMiddlewareMap {
                   logger.warn(err, 'Audio middleware: Bing Speech transcoding failed');
                   next(err);
               });
-      },
-      send: (event: BotBuilder.IMessage, next: Function) => {
-          let audioOutputEnabled = process.env.ENABLE_AUDIO_OUTPUT === 'true';
+        }
+    } as BotBuilder.IMiddlewareMap;
 
-          //
-          // TODO determine whether the client sent an audio attachment (input) and supports audio (output).
-          //      it is not so easy because we don't have the Session here.
-          //
+    /**
+     * Synthesizes the text in a message (if present) and adds the result as an audio attachment to the user.
+     * @param message
+     * @return {Promise<void>} A promise resolved when the audio attachment is complete.
+     */
+    function attachAudio(message: BotBuilder.IMessage): Promise<void> {
+        if (!message.text) {
+            return Promise.resolve();
+        }
 
-          if (!audioOutputEnabled || !event.text) {
-              return next();
-          }
-
-          bingSpeechClient.synthesizeStream(event.text)
+        return bingSpeechClient.synthesizeStream(message.text)
             .then(stream => {
                 logger.debug('Bing Speech synthesize succeeded');
                 return storage.upload(stream);
             })
             .then(url => {
                 logger.info({url: url}, 'Audio response uploaded');
-                event.attachments = event.attachments || [];
-                event.attachments.push({
+                message.attachments = message.attachments || [];
+                message.attachments.push({
                     contentType: 'audio/wave',
                     contentUrl: url
                 });
             })
-            .then(() => next())
             .catch(err => {
-                logger.warn(err, 'Audio middleware: voice synthesis failed');
-                next(err);
+                // XXX attach a default error audio message?
+                logger.error(err, 'Audio middleware: voice synthesis failed');
             });
-        }
-    } as BotBuilder.IMiddlewareMap;
+    }
 }
 
 /**
@@ -143,6 +159,7 @@ function remoteAttachmentStream(url: string): Promise<NodeJS.ReadWriteStream> {
         return needle.get(url, options);
     });
 }
+
 /**
  * @param {string} url - Remote resource location
  * @param {number} maxSize - Max size of the remote resource
