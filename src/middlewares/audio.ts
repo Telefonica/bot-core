@@ -75,8 +75,6 @@ export default function factory(): BotBuilder.IMiddlewareMap {
               } else {
                   logger.warn('Attribute session.options.onSend not found. You might be using a wrong botbuilder version');
               }
-          } else {
-              logger.
           }
 
           let isValidAudioAttachment = SUPPORTED_CONTENT_TYPES.indexOf(attachment.contentType) >= 0;
