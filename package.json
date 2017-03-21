@@ -1,6 +1,6 @@
 {
   "name": "@telefonica/bot-core",
-  "version": "1.35.1",
+  "version": "2.0.0",
   "description": "Bot Core module to develop bots based on Microsoft Bot Framework",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -45,7 +45,7 @@
     "alfalfa": "^2.2.0",
     "azure-event-hubs": "0.0.6",
     "bingspeech-api-client": "^2.2.0",
-    "botbuilder": "3.4.4",
+    "botbuilder": "3.7.0",
     "express": "^4.14.0",
     "express-domaining": "^2.0.1",
     "express-ping": "^1.4.0",
