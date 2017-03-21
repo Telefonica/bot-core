@@ -77,11 +77,19 @@ export class Prompts extends BotBuilder.Prompts {
         logger.debug('The reply has not been recognized. Looking for an intent to change the dialog on the fly...');
 
         let dlg = <BotBuilder.IntentDialog>session.library.dialog('/');
-        let context: BotBuilder.IRecognizeContext = {
+        let context: BotBuilder.IRecognizeDialogContext = {
             message: session.message,
             locale: session.preferredLocale(),
             dialogData: session.dialogData,
-            activeDialog: true
+            activeDialog: true,
+            userData: session.userData,
+            conversationData: session.conversationData,
+            privateConversationData: session.privateConversationData,
+            localizer: session.localizer,
+            preferredLocale: session.preferredLocale,
+            gettext: session.gettext,
+            ngettext: session.ngettext,
+            dialogStack: session.dialogStack
         };
         dlg.recognize(context, (err: Error, recognitionResult: BotBuilder.IIntentRecognizerResult) => {
             if (err) {

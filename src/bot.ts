@@ -47,7 +47,9 @@ export class Bot extends BotBuilder.UniversalBot {
         settings.defaultDialogArgs = settings.defaultDialogArgs || {};
         settings.defaultDialogArgs.promptsCancelIntentsBlacklist = settings.promptsCancelIntentsBlacklist;
 
-        super(null, settings);
+        // UniversalBot has three constructors, but the interface definition is using the wrong one (not the most generic),
+        // so this "casting" is required
+        super(null, <any>settings);
 
         this.loader = new PluginLoader(settings.plugins);
 
@@ -107,7 +109,7 @@ export class Bot extends BotBuilder.UniversalBot {
         intentDialog.onDefault((session: BotBuilder.Session, result: any) => {
             logger.debug('Find library for intent [%s]', result.intent);
 
-            let dialogName = this.findDialog(result.intent, libraries);
+            let dialogName = this.findMyDialog(result.intent, libraries);
 
             if (dialogName) {
                 logger.debug({ result }, 'Starting library dialog [%s]', dialogName);
@@ -122,7 +124,8 @@ export class Bot extends BotBuilder.UniversalBot {
         return intentDialog;
     }
 
-    private findDialog(intent: string, libraries: BotBuilder.Library[]): string {
+    // The name of this method cannot be "findDialog", as it is a non-private method in UniversalBot
+    private findMyDialog(intent: string, libraries: BotBuilder.Library[]): string {
         let dialogName: string;
 
         libraries.some(library => {
