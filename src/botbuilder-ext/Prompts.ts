@@ -203,8 +203,8 @@ export class Prompts extends BotBuilder.Prompts {
             // - In the case that the prompt is not a BotBuilder.IMessage, those will be the labels for the buttons.
             // - Those values are automatically recognized by the EntityRecognizer as valid yes/no responses.
             args.enumValues = [
-                session.localizer.gettext(locale, yesNoChoices[0]),
-                session.localizer.gettext(locale, yesNoChoices[1])
+                session.gettext(yesNoChoices[0]),
+                session.gettext(yesNoChoices[1])
             ];
         } else {
             args.enumValues = [
