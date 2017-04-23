@@ -46,6 +46,7 @@
     "azure-event-hubs": "0.0.6",
     "bingspeech-api-client": "^2.2.0",
     "botbuilder": "3.7.0",
+    "botbuilder-cognitiveservices": "^1.0.1",
     "express": "^4.14.0",
     "express-domaining": "^2.0.1",
     "express-ping": "^1.4.0",
@@ -77,6 +78,6 @@
     "sinon": "^1.17.6",
     "sinon-chai": "^2.8.0",
     "tslint": "^4.4.2",
-    "typescript": "^2.2.1"
+    "typescript": "^2.2.2"
   }
 }
