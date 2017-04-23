@@ -89,10 +89,24 @@ export class Bot extends BotBuilder.UniversalBot {
     }
 
     private createIntentDialog(): BotBuilder.IntentDialog {
-        let luisRecognizers = this.initializeLanguageRecognizers();
+        let recognizers = this.initializeLanguageRecognizers();
+
+        let qnaEnabled = process.env.QNA_KNOWLEDGEBASE_ID && process.env.QNA_SUBSCRIPTION_KEY;
+        if (qnaEnabled) {
+            const cognitiveservices = require('botbuilder-cognitiveservices');
+
+            let qnaRecognizer = new cognitiveservices.QnAMakerRecognizer({
+                knowledgeBaseId: process.env.QNA_KNOWLEDGEBASE_ID,
+                subscriptionKey: process.env.QNA_SUBSCRIPTION_KEY
+            });
+
+            logger.info('Add QnA recognizer', process.env.QNA_KNOWLEDGEBASE_ID);
+            recognizers = [qnaRecognizer, ...recognizers]; // QnA recognizer must go first
+        }
 
         let intentDialog = new BotBuilder.IntentDialog({
-            recognizers: luisRecognizers
+            recognizers: recognizers,
+            recognizeOrder: BotBuilder.RecognizeOrder.series
         });
 
         let libraries = this.loader.getLibraries();
@@ -107,17 +121,24 @@ export class Bot extends BotBuilder.UniversalBot {
         });
 
         intentDialog.onDefault((session: BotBuilder.Session, result: any) => {
-            logger.debug('Find library for intent [%s]', result.intent);
-
-            let dialogName = this.findMyDialog(result.intent, libraries);
-
-            if (dialogName) {
-                logger.debug({ result }, 'Starting library dialog [%s]', dialogName);
-                session.beginDialog(dialogName, result);
+            let foundInQnA = result.answer;
+            if (foundInQnA) {
+                let resultInfo = {qna: {score: result.score}};
+                logger.debug(resultInfo, 'Found QnA with score', result.score);
+                session.endDialog(result.answer);
             } else {
-                logger.warn({ intent: result.intent }, 'Unhandled intent');
-                let msg = createkUnhandledMessageResponse(session, result);
-                session.endDialog(msg);
+                logger.debug('Find library for intent [%s]', result.intent);
+
+                let dialogName = this.findMyDialog(result.intent, libraries);
+
+                if (dialogName) {
+                    logger.debug({ result }, 'Starting library dialog [%s]', dialogName);
+                    session.beginDialog(dialogName, result);
+                } else {
+                    logger.warn({ intent: result.intent }, 'Unhandled intent');
+                    let msg = createkUnhandledMessageResponse(session, result);
+                    session.endDialog(msg);
+                }
             }
         });
 
