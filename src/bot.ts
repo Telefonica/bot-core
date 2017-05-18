@@ -32,7 +32,9 @@ import {  LanguageDetector,
 import { PluginLoader } from './loader';
 
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
-    modelMapSet: BotBuilder.ILuisModelMap[];
+    modelMapSet: BotBuilder.IIntentRecognizer[];
+    recognizeOrder: BotBuilder.RecognizeOrder;
+    supportedLanguages: string[];
     plugins: string[];
     /** Blacklisted intents that should never cancel a BotBuilderExt.Prompts dialog */
     promptsCancelIntentsBlacklist?: string[];
@@ -90,23 +92,10 @@ export class Bot extends BotBuilder.UniversalBot {
 
     private createIntentDialog(): BotBuilder.IntentDialog {
         let recognizers = this.initializeLanguageRecognizers();
-
-        let qnaEnabled = process.env.QNA_KNOWLEDGEBASE_ID && process.env.QNA_SUBSCRIPTION_KEY;
-        if (qnaEnabled) {
-            const cognitiveservices = require('botbuilder-cognitiveservices');
-
-            let qnaRecognizer = new cognitiveservices.QnAMakerRecognizer({
-                knowledgeBaseId: process.env.QNA_KNOWLEDGEBASE_ID,
-                subscriptionKey: process.env.QNA_SUBSCRIPTION_KEY
-            });
-
-            logger.info('Add QnA recognizer', process.env.QNA_KNOWLEDGEBASE_ID);
-            recognizers = [qnaRecognizer, ...recognizers]; // QnA recognizer must go first
-        }
-
+        let recognizerOrder = this.get('recognizeOrder') as BotBuilder.RecognizeOrder;
         let intentDialog = new BotBuilder.IntentDialog({
             recognizers: recognizers,
-            recognizeOrder: BotBuilder.RecognizeOrder.series
+            recognizeOrder: recognizerOrder
         });
 
         let libraries = this.loader.getLibraries();
@@ -160,26 +149,25 @@ export class Bot extends BotBuilder.UniversalBot {
     }
 
     private initializeLanguageRecognizers(): BotBuilder.IIntentRecognizer[] {
-        let modelMapSet = this.get('modelMapSet') as BotBuilder.ILuisModelMap[];
-
+        // In modelMapSet will come a set of IIntentRecognizer objects already initializated:
+        // QnAMakerRecognizer, LuisRecognizer, and more...
+        //
+        let modelMapSet = this.get('modelMapSet') as BotBuilder.IIntentRecognizer[];
         if (!modelMapSet || !modelMapSet.length) {
-            logger.error('No LUIS models defined');
+            logger.error('No Recognizer models defined');
             return [];
         }
-
-        logger.info('Load LUIS models', modelMapSet);
-
-        return modelMapSet.map((modelMap: BotBuilder.ILuisModelMap) => {
-            return new BotBuilder.LuisRecognizer(modelMap);
-        });
+        logger.info('Load Recognizer models', modelMapSet);
+        return modelMapSet;
     }
 
     private supportedLanguages(): string[] {
-        let modelMapSet = this.get('modelMapSet') as BotBuilder.ILuisModelMap[];
-        let languages = modelMapSet.map((modelMap) => Object.keys(modelMap))
-                                   .reduce((a, b) => a.concat(b))
-                                   .filter((v, i, a) => a.indexOf(v) === i); // unique
-
+        let supportedLanguages = this.get('supportedLanguages') as string[];
+        if (!supportedLanguages || !supportedLanguages.length) {
+            logger.error('No Supported Languages defined');
+            return [];
+        }
+        let languages = supportedLanguages.filter((v, i, a) => a.indexOf(v) === i); // unique
         return languages;
     }
 }
