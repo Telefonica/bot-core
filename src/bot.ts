@@ -34,7 +34,7 @@ import { PluginLoader } from './loader';
 export interface BotSettings extends BotBuilder.IUniversalBotSettings {
     /** Set of IIntentRecognizer objects already initializated externally */
     intentRecognizers: BotBuilder.IIntentRecognizer[];
-    recognizeOrder: BotBuilder.RecognizeOrder;    
+    recognizeOrder: BotBuilder.RecognizeOrder;
     /** Set of supported languages of the intentRecognizers set*/
     supportedLanguages: string[];
     plugins: string[];
@@ -97,7 +97,7 @@ export class Bot extends BotBuilder.UniversalBot {
 
         let recognizerOrder = this.get('recognizeOrder') as BotBuilder.RecognizeOrder;
         if (typeof recognizerOrder === 'undefined' || recognizerOrder === null) {
-            // by default recognierOrder will be series 
+            // by default recognierOrder will be series
             recognizerOrder = BotBuilder.RecognizeOrder.series;
         }
 
@@ -157,10 +157,8 @@ export class Bot extends BotBuilder.UniversalBot {
     }
 
     private initializeLanguageRecognizers(): BotBuilder.IIntentRecognizer[] {
-        // In intentRecognizers will come a set of IIntentRecognizer objects 
-        // already initializated:
-        // QnAMakerRecognizer, LuisRecognizer, and more...
-        //
+        // In intentRecognizers will come a set of IIntentRecognizer objects already initializated:
+        // (ex. QnAMakerRecognizer, LuisRecognizer, etc)
         let intentRecognizers = this.get('intentRecognizers') as BotBuilder.IIntentRecognizer[];
         if (!intentRecognizers || !intentRecognizers.length) {
             logger.error('No Recognizer models defined in intentRecognizers');
